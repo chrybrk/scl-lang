@@ -2,7 +2,20 @@
 #define GEN_H
 
 #include "parser.h"
+#include "array.h"
 
-void gen_gen(ast_T* root);
+struct stack_variable
+{
+    char* identifier;
+    int data_type;
+};
+
+static FILE* output;
+static array_T* gen_stack;
+
+void gen_preamble(char* output_pathname);
+void gen_stmnt(ast_T* stmnt);
+void gen_program(ast_T* root);
+void gen_postamble();
 
 #endif

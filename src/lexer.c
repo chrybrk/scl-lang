@@ -76,6 +76,8 @@ token_T* lexer_collect_identifier(lexer_T* lexer)
     token_T* token;
 
     if (!strcmp(string, "exit")) token = init_token(T_EXIT, string);
+    else if (!strcmp(string, "let")) token = init_token(T_LET, string);
+    else token = init_token(T_IDENT, string);
 
     return token;
 }
@@ -114,6 +116,8 @@ token_T* next_token(lexer_T* lexer)
             case '(': return lexer_create_current_token(lexer, T_LPARAN);
             case ')': return lexer_create_current_token(lexer, T_RPARAN);
             case ';': return lexer_create_current_token(lexer, T_SEMI);
+            case ':': return lexer_create_current_token(lexer, T_COLON);
+            case '=': return lexer_create_current_token(lexer, T_ASSIGN);
         }
     }
 

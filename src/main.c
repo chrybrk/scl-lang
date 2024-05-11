@@ -5,6 +5,8 @@
 #include "include/parser.h"
 #include "include/gen.h"
 
+// TODO: update grammar rule, handling identifier in expr.
+
 int main(int argc, char** argv)
 {
     // check if we have input file
@@ -17,10 +19,12 @@ int main(int argc, char** argv)
     parser_T* parser = init_parser(lexer);
     ast_T* root = parser_parse(parser);
 
-    printf("    global  _start\n");
-    printf("    section .text\n");
-    printf("_start:\n");
-    gen_gen(root);
+    gen_preamble("bin/main.s");
+    gen_program(root);
+    gen_postamble();
+
+    system("nasm -felf64 bin/main.s -o bin/main.o");
+    system("ld bin/main.o -o bin/main");
 
     return 0;
 }

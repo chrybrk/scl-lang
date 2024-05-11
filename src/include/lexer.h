@@ -7,14 +7,18 @@
 enum {
     // keywords
     T_EXIT,
+    T_LET,
 
     // operators, symbols
     T_LPARAN,
     T_RPARAN,
     T_SEMI,
+    T_COLON,
+    T_ASSIGN,
 
     // lit
     T_INTLIT,
+    T_IDENT,
     T_EOF
 };
 

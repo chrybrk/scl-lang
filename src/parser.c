@@ -1,11 +1,33 @@
 #include "include/parser.h"
+#include <string.h>
 
-ast_T* init_ast_exit(ast_T* expr_node)
+ast_T* init_ast_node(ast_T* node, int type)
 {
     ast_T* ast = calloc(1, sizeof(struct AST_STRUCT));
-    ast->ast_type = AST_EXIT;
-    ast->expr_node = expr_node;
+    ast->ast_type = type;
+    ast->node = node;
+    ast->lst = NULL;
     ast->token = NULL;
+    return ast;
+}
+
+ast_T* init_ast_list(int type)
+{
+    ast_T* ast = calloc(1, sizeof(struct AST_STRUCT));
+    ast->ast_type = type;
+    ast->node = NULL;
+    ast->lst = init_array(sizeof(struct AST_STRUCT));
+    ast->token = NULL;
+    return ast;
+}
+
+ast_T* init_ast_stmnt(ast_T* expr_node, token_T* ident, int type)
+{
+    ast_T* ast = calloc(1, sizeof(struct AST_STRUCT));
+    ast->ast_type = type;
+    ast->node = expr_node;
+    ast->lst = NULL;
+    ast->token = ident;
     return ast;
 }
 
@@ -13,7 +35,8 @@ ast_T* init_ast_expr(token_T* token)
 {
     ast_T* ast = calloc(1, sizeof(struct AST_STRUCT));
     ast->ast_type = AST_EXPR;
-    ast->expr_node = NULL;
+    ast->node = NULL;
+    ast->lst = NULL;
     ast->token = token;
     return ast;
 }
@@ -55,16 +78,42 @@ ast_T* parser_parse_exit(parser_T* parser)
 {
     parser_token_consume(parser, T_EXIT);
     parser_token_consume(parser, T_LPARAN);
-    ast_T* ast = init_ast_exit(parser_parse_expr(parser));
+    ast_T* ast = init_ast_node(parser_parse_expr(parser), AST_EXIT);
     parser_token_consume(parser, T_RPARAN);
     parser_token_consume(parser, T_SEMI);
     return ast;
 }
 
+ast_T* parser_parse_let(parser_T* parser)
+{
+    parser_token_consume(parser, T_LET);
+    token_T* ident = parser_token_consume(parser, T_IDENT);
+    parser_token_consume(parser, T_COLON);
+    token_T* data_type = parser_token_consume(parser, T_IDENT);
+    parser_token_consume(parser, T_ASSIGN);
+    ast_T* expr = parser_parse_expr(parser);
+    parser_token_consume(parser, T_SEMI);
+
+    // TODO: cleanup and hashmap
+    ast_T* ast = init_ast_stmnt(expr, ident, AST_LET);
+
+    if (!strcmp(data_type->value, "i32")) ast->data_type = I32;
+
+    return ast;
+}
+
+// TODO: create dynamic array to store statements
 ast_T* parser_parse(parser_T* parser)
 {
-    switch (parser->current_token->token_type)
+    ast_T* stmnt = init_ast_list(AST_STATEMENT);
+    while (parser->current_token->token_type != T_EOF)
     {
-        case T_EXIT: return parser_parse_exit(parser);
+        switch (parser->current_token->token_type)
+        {
+            case T_EXIT: array_push(stmnt->lst, parser_parse_exit(parser)); break;
+            case T_LET: array_push(stmnt->lst, parser_parse_let(parser)); break;
+        }
     }
+
+    return stmnt;
 }
