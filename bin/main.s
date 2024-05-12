@@ -1,8 +1,8 @@
 	global _start
 	section .text
 _start:
-	push 12
-	push 12
+	push 10
+	push qword [rsp + (0 - 0) * 8]
 	mov rax, 60
-	mov rdi, 0
+	mov rdi, qword [rsp + (1 - 0) * 8]
 	syscall

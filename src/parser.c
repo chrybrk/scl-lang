@@ -78,6 +78,11 @@ ast_T* parser_parse_expr(parser_T* parser)
             ast_T* ast = init_ast_expr(parser_token_consume(parser, T_INTLIT));
             return ast;
         }
+        case T_IDENT:
+        {
+            ast_T* ast = init_ast_expr(parser_token_consume(parser, T_IDENT));
+            return ast;
+        }
     }
 }
 

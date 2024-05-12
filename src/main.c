@@ -5,7 +5,8 @@
 #include "include/parser.h"
 #include "include/gen.h"
 
-// TODO: update grammar rule, handling identifier in expr.
+// TODO: [done] - update grammar rule, handling identifier in expr.
+// TODO: update grammar rule, handling math expr.
 
 int main(int argc, char** argv)
 {

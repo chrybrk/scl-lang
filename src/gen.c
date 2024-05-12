@@ -33,7 +33,17 @@ void gen_exit(gen_T* gen, ast_T* node)
 
 void gen_expr(gen_T* gen, ast_T* node)
 {
-    fprintf(gen->output, "%d\n", node->token->intvalue);
+    switch (node->token->token_type)
+    {
+        case T_INTLIT: fprintf(gen->output, "%d\n", node->token->intvalue); break;
+        case T_IDENT:
+        {
+            struct hash_pair* value = hashmap_find(gen->hashmap, node->token->value);
+            if (value) fprintf(gen->output, "qword [rsp + (%ld - %ld) * 8]\n", gen->size_of_stack - 1, value->value);
+            else printf("[ERROR]: variable `%s` is not defined.\n", node->token->value);
+            break;
+        }
+    };
 }
 
 void gen_let(gen_T* gen, ast_T* node)
@@ -52,12 +62,12 @@ void gen_let(gen_T* gen, ast_T* node)
             .data_type = node->data_type
         };
 
+        fprintf(gen->output, "\tpush ");
+        gen_statement(gen, node->node);
+
         hashmap_insert(gen->hashmap, node->token->value, gen->size_of_stack);
         array_push(gen->vars, &var);
         gen->size_of_stack++;
-
-        fprintf(gen->output, "\tpush ");
-        gen_statement(gen, node->node);
     }
     else printf("[ERROR]: variable already defined, '%s'.\n", node->token->value), exit(1);
 }
