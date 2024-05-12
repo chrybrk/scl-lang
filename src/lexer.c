@@ -18,6 +18,12 @@ lexer_T* init_lexer(char* source_file)
     lexer->len = strlen(source_file);
     lexer->index = 0;
     lexer->current_char = lexer->source_file[lexer->index];
+    lexer->hashmap = init_hashmap(DEF_SIZE);
+
+    // declare keywords
+    hashmap_insert(lexer->hashmap, "exit", T_EXIT);
+    hashmap_insert(lexer->hashmap, "let", T_LET);
+
     return lexer;
 }
 
@@ -75,8 +81,8 @@ token_T* lexer_collect_identifier(lexer_T* lexer)
     string[index] = '\0';
     token_T* token;
 
-    if (!strcmp(string, "exit")) token = init_token(T_EXIT, string);
-    else if (!strcmp(string, "let")) token = init_token(T_LET, string);
+    struct hash_pair* hash = hashmap_find(lexer->hashmap, string);
+    if (hash) token = init_token(hash->value, string);
     else token = init_token(T_IDENT, string);
 
     return token;
@@ -107,6 +113,7 @@ token_T* next_token(lexer_T* lexer)
     while (lexer->current_char)
     {
         lexer_skip_whitespace(lexer);
+        if (!lexer->current_char) break;
 
         if (isdigit(lexer->current_char)) return lexer_collect_integer(lexer);
         if (isalpha(lexer->current_char)) return lexer_collect_identifier(lexer);
@@ -118,6 +125,7 @@ token_T* next_token(lexer_T* lexer)
             case ';': return lexer_create_current_token(lexer, T_SEMI);
             case ':': return lexer_create_current_token(lexer, T_COLON);
             case '=': return lexer_create_current_token(lexer, T_ASSIGN);
+            default: printf("[ERROR]: lexer: illegal character, `%c`.\n", lexer->current_char), exit(1);
         }
     }
 

@@ -3,19 +3,24 @@
 
 #include "parser.h"
 #include "array.h"
+#include "hashmap.h"
 
 struct stack_variable
 {
     char* identifier;
-    int data_type;
+    char data_type;
 };
 
-static FILE* output;
-static array_T* gen_stack;
+typedef struct GEN_STRUCT
+{
+    FILE* output;
+    ssize_t size_of_stack;
+    hashmap_T* hashmap;
+    array_T* vars;
+} gen_T;
 
-void gen_preamble(char* output_pathname);
-void gen_stmnt(ast_T* stmnt);
-void gen_program(ast_T* root);
-void gen_postamble();
+gen_T* init_gen(char* output_pathname);
+void gen_program(gen_T* gen, ast_T* root);
+void gen_statement(gen_T* gen, ast_T* next_node);
 
 #endif

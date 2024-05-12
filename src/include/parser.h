@@ -3,6 +3,7 @@
 
 #include "lexer.h"
 #include "array.h"
+#include "hashmap.h"
 
 enum {
     AST_EXIT,
@@ -31,6 +32,7 @@ typedef struct PARSER_STRUCT
 {
     lexer_T* lexer;
     token_T* current_token;
+    hashmap_T* hashmap;
 } parser_T;
 
 ast_T* init_ast_node(ast_T* expr_node, int type);

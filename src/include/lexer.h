@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include "hashmap.h"
 
 enum {
     // keywords
@@ -35,6 +36,7 @@ typedef struct LEXER_STRUCT
     ssize_t len;
     ssize_t index;
     char current_char;
+    hashmap_T* hashmap;
     // TODO: line and column
 } lexer_T;
 

@@ -1,5 +1,5 @@
-#include "include/parser.h"
 #include <string.h>
+#include "include/parser.h"
 
 ast_T* init_ast_node(ast_T* node, int type)
 {
@@ -46,6 +46,13 @@ parser_T* init_parser(lexer_T* lexer)
     parser_T* parser = calloc(1, sizeof(struct PARSER_STRUCT));
     parser->lexer = lexer;
     parser->current_token = next_token(parser->lexer);
+    parser->hashmap = init_hashmap(DEF_SIZE);
+
+    hashmap_insert(parser->hashmap, "char", CHAR);
+    hashmap_insert(parser->hashmap, "i16", I16);
+    hashmap_insert(parser->hashmap, "i32", I32);
+    hashmap_insert(parser->hashmap, "i64", I64);
+
     return parser;
 }
 
@@ -94,15 +101,17 @@ ast_T* parser_parse_let(parser_T* parser)
     ast_T* expr = parser_parse_expr(parser);
     parser_token_consume(parser, T_SEMI);
 
-    // TODO: cleanup and hashmap
+    // TODO: [done] - cleanup and hashmap
     ast_T* ast = init_ast_stmnt(expr, ident, AST_LET);
 
-    if (!strcmp(data_type->value, "i32")) ast->data_type = I32;
+    struct hash_pair* value = hashmap_find(parser->hashmap, data_type->value);
+    if (value) ast->data_type = value->value;
+    else printf("[WARN]: parser: data_type `%s` is not implemented.\n", data_type->value);
 
     return ast;
 }
 
-// TODO: create dynamic array to store statements
+// TODO: [done] - create dynamic array to store statements
 ast_T* parser_parse(parser_T* parser)
 {
     ast_T* stmnt = init_ast_list(AST_STATEMENT);

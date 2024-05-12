@@ -19,9 +19,8 @@ int main(int argc, char** argv)
     parser_T* parser = init_parser(lexer);
     ast_T* root = parser_parse(parser);
 
-    gen_preamble("bin/main.s");
-    gen_program(root);
-    gen_postamble();
+    gen_T* gen = init_gen("bin/main.s");
+    gen_program(gen, root);
 
     system("nasm -felf64 bin/main.s -o bin/main.o");
     system("ld bin/main.o -o bin/main");
