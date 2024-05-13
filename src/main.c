@@ -7,6 +7,7 @@
 
 // TODO: [done] - update grammar rule, handling identifier in expr.
 // TODO: update grammar rule, handling math expr.
+// FIXME: unable to generate proper assembly.
 
 int main(int argc, char** argv)
 {
@@ -23,8 +24,7 @@ int main(int argc, char** argv)
     gen_T* gen = init_gen("bin/main.s");
     gen_program(gen, root);
 
-    system("nasm -felf64 bin/main.s -o bin/main.o");
-    system("ld bin/main.o -o bin/main");
+    system("bin/fasm bin/main.s");
 
     return 0;
 }
