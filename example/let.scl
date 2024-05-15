@@ -1,5 +1,2 @@
-let x: char = 10;
-let y: i16 = x;
-let z: i64 = 1240;
-let w: char = z;
-exit(w);
+let x: i16 = 10;
+exit(x);

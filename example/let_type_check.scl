@@ -1,4 +1,3 @@
-let x: char = 5;
-let y: i32 = 10;
+let x: i64 = 5;
 let z: i16 = x;
 exit(z);

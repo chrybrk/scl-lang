@@ -6,8 +6,9 @@
 #include "include/gen.h"
 
 // TODO: [done] - update grammar rule, handling identifier in expr.
+// FIXME: [done] - unable to generate proper assembly.
 // TODO: update grammar rule, handling math expr.
-// FIXME: unable to generate proper assembly.
+// TODO: able to make use of, `extrn` keyword in fasm.
 
 int main(int argc, char** argv)
 {
@@ -24,7 +25,7 @@ int main(int argc, char** argv)
     gen_T* gen = init_gen("bin/main.s");
     gen_program(gen, root);
 
-    system("bin/fasm bin/main.s");
+    system("vendor/fasm bin/main.s");
 
     return 0;
 }

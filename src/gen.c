@@ -154,6 +154,11 @@ void gen_let(gen_T* gen, ast_T* node)
 
         if (((ast_T*)node->node)->token->token_type == T_IDENT)
         {
+            struct stack_variable* r_var = gen->vars->buffer[hashmap_find(gen->hashmap, ((ast_T*)node->node)->token->value)->value];
+            char data_type_size_for_rop = get_data_type_size(r_var->data_type);
+            if ((int)data_type_size < (int)data_type_size_for_rop)
+                printf("[WARN]: `%s -> %s`, moving higher size variable data to lower size variable, might result in loss of data.\n", r_var->identifier, node->token->value);
+
             char* r = get_free_reg(data_type_size);
             fprintf(gen->output, "\tmov %s, ", r);
             gen_statement(gen, node->node);
