@@ -9,6 +9,7 @@ enum {
     // keywords
     T_EXIT,
     T_LET,
+    T_EXTERN,
 
     // operators, symbols
     T_LPARAN,

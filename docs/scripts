@@ -1,2 +1,3 @@
 ; fasm main.s
 ; ld main.o -o main -dynamic-linker /usr/lib64/ld-linux-x86-64.so.2 -lc
+; gcc -no-pie main.o -L./raylib/lib -lraylib -lglfw -lm -nostdlib -lc -o main

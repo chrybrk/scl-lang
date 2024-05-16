@@ -7,8 +7,9 @@
 
 enum {
     AST_EXIT,
-    AST_EXPR,
     AST_LET,
+    AST_EXTERN,
+    AST_EXPR,
     AST_STATEMENT
 };
 
@@ -38,7 +39,7 @@ typedef struct PARSER_STRUCT
 ast_T* init_ast_node(ast_T* expr_node, int type);
 ast_T* init_ast_list(int type);
 ast_T* init_ast_stmnt(ast_T* expr_node, token_T* ident, int type);
-ast_T* init_ast_expr(token_T* token);
+ast_T* init_ast_with_token(int type, token_T* token);
 parser_T* init_parser(lexer_T* lexer);
 ast_T* parser_parse(parser_T* parser);
 

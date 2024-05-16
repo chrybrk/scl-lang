@@ -25,7 +25,8 @@ int main(int argc, char** argv)
     gen_T* gen = init_gen("bin/main.s");
     gen_program(gen, root);
 
-    system("vendor/fasm bin/main.s");
+    system("fasm bin/main.s");
+    system("gcc -no-pie -nostdlib -lc bin/main.o -o bin/main");
 
     return 0;
 }

@@ -23,6 +23,7 @@ lexer_T* init_lexer(char* source_file)
     // declare keywords
     hashmap_insert(lexer->hashmap, "exit", T_EXIT);
     hashmap_insert(lexer->hashmap, "let", T_LET);
+    hashmap_insert(lexer->hashmap, "extern", T_EXTERN);
 
     return lexer;
 }
@@ -113,11 +114,11 @@ token_T* next_token(lexer_T* lexer)
     while (lexer->current_char)
     {
         lexer_skip_whitespace(lexer);
-        if (!lexer->current_char) break;
 
         if (isdigit(lexer->current_char)) return lexer_collect_integer(lexer);
         if (isalpha(lexer->current_char)) return lexer_collect_identifier(lexer);
 
+        if (!lexer->current_char) return init_token(T_EOF, NULL);
         switch (lexer->current_char)
         {
             case '(': return lexer_create_current_token(lexer, T_LPARAN);
@@ -125,7 +126,6 @@ token_T* next_token(lexer_T* lexer)
             case ';': return lexer_create_current_token(lexer, T_SEMI);
             case ':': return lexer_create_current_token(lexer, T_COLON);
             case '=': return lexer_create_current_token(lexer, T_ASSIGN);
-            default: printf("[ERROR]: lexer: illegal character, `%c`.\n", lexer->current_char), exit(1);
         }
     }
 

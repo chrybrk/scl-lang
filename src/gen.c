@@ -1,5 +1,8 @@
 #include "include/gen.h"
 #include <string.h>
+#include <stdarg.h>
+
+// TODO: use local string, than directly writing everythin into output
 
 static char* reg[] = { "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15" };
 static char* regb[] = { "r8b", "r9b", "r10b", "r11b", "r12b", "r13b", "r14b", "r15b" };
@@ -84,6 +87,16 @@ char* get_data_type_value(char size)
     return NULL;
 }
 
+void write_preamble(char* fmt, ...)
+{
+    char* string;
+    va_list args;
+    va_start(args, fmt);
+    vasprintf(&string, fmt, args);
+    // it works
+    va_end(args);
+}
+
 gen_T* init_gen(char* output_pathname)
 {
     gen_T* gen = calloc(1, sizeof(struct GEN_STRUCT));
@@ -96,9 +109,9 @@ gen_T* init_gen(char* output_pathname)
 
 void gen_program(gen_T* gen, ast_T* root)
 {
-    fprintf(gen->output, "format ELF64 executable\n");
-    fprintf(gen->output, "segment readable executable\n");
-    fprintf(gen->output, "entry _start\n");
+    fprintf(gen->output, "format ELF64\n");
+    fprintf(gen->output, "section '.text' executable\n");
+    fprintf(gen->output, "public _start\n");
     fprintf(gen->output, "_start:\n");
     fprintf(gen->output, "\tpush rbp\n");
     fprintf(gen->output, "\tmov rbp, rsp\n");
@@ -183,6 +196,10 @@ void gen_let(gen_T* gen, ast_T* node)
     else printf("[ERROR]: variable already defined, '%s'.\n", node->token->value), exit(1);
 }
 
+void gen_extern(gen_T* gen, ast_T* node)
+{
+}
+
 void gen_statement(gen_T* gen, ast_T* next_node)
 {
     switch (next_node->ast_type)
@@ -190,5 +207,6 @@ void gen_statement(gen_T* gen, ast_T* next_node)
         case AST_EXIT: gen_exit(gen, next_node); break;
         case AST_EXPR: gen_expr(gen, next_node); break;
         case AST_LET: gen_let(gen, next_node); break;
+        case AST_EXTERN: gen_extern(gen, next_node); break;
     }
 }

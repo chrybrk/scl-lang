@@ -19,6 +19,11 @@ typedef struct GEN_STRUCT
     ssize_t last_stack_index;
     hashmap_T* hashmap;
     array_T* vars;
+
+    char* root_preabmble;
+    char* root_postamble;
+    char* root_externs;
+    char* root_statements;
 } gen_T;
 
 gen_T* init_gen(char* output_pathname);

@@ -1,6 +1,10 @@
 program:
     exit
     let
+    extern
+
+extern:
+    extern ident;
 
 exit:
     exit([expr]);

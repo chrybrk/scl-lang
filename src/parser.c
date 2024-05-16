@@ -31,10 +31,10 @@ ast_T* init_ast_stmnt(ast_T* expr_node, token_T* ident, int type)
     return ast;
 }
 
-ast_T* init_ast_expr(token_T* token)
+ast_T* init_ast_with_token(int type, token_T* token)
 {
     ast_T* ast = calloc(1, sizeof(struct AST_STRUCT));
-    ast->ast_type = AST_EXPR;
+    ast->ast_type = type;
     ast->node = NULL;
     ast->lst = NULL;
     ast->token = token;
@@ -75,12 +75,12 @@ ast_T* parser_parse_expr(parser_T* parser)
     {
         case T_INTLIT:
         {
-            ast_T* ast = init_ast_expr(parser_token_consume(parser, T_INTLIT));
+            ast_T* ast = init_ast_with_token(AST_EXPR, parser_token_consume(parser, T_INTLIT));
             return ast;
         }
         case T_IDENT:
         {
-            ast_T* ast = init_ast_expr(parser_token_consume(parser, T_IDENT));
+            ast_T* ast = init_ast_with_token(AST_EXPR, parser_token_consume(parser, T_IDENT));
             return ast;
         }
     }
@@ -111,7 +111,17 @@ ast_T* parser_parse_let(parser_T* parser)
 
     struct hash_pair* value = hashmap_find(parser->hashmap, data_type->value);
     if (value) ast->data_type = value->value;
-    else printf("[WARN]: parser: data_type `%s` is not implemented.\n", data_type->value);
+    else printf("[WARN]: parser: data_type `%s` is not implemented.\n", data_type->value), exit(1);
+
+    return ast;
+}
+
+ast_T* parser_parse_extern(parser_T* parser)
+{
+    parser_token_consume(parser, T_EXTERN);
+    token_T* ident = parser_token_consume(parser, T_IDENT);
+    parser_token_consume(parser, T_SEMI);
+    ast_T* ast = init_ast_with_token(AST_EXTERN, ident);
 
     return ast;
 }
@@ -126,6 +136,8 @@ ast_T* parser_parse(parser_T* parser)
         {
             case T_EXIT: array_push(stmnt->lst, parser_parse_exit(parser)); break;
             case T_LET: array_push(stmnt->lst, parser_parse_let(parser)); break;
+            case T_EXTERN: array_push(stmnt->lst, parser_parse_extern(parser)); break;
+            default: printf("[ERROR]: parser: failed to parse, illegal token. `%s`.\n", parser->current_token->value), exit(1);
         }
     }
 

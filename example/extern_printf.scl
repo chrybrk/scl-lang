@@ -1,0 +1,2 @@
+extern printf;
+exit(0);
