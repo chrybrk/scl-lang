@@ -49,6 +49,7 @@ parser_T* init_parser(lexer_T* lexer)
     parser->hashmap = init_hashmap(DEF_SIZE);
 
     hashmap_insert(parser->hashmap, "char", CHAR);
+    hashmap_insert(parser->hashmap, "string", STRING);
     hashmap_insert(parser->hashmap, "i16", I16);
     hashmap_insert(parser->hashmap, "i32", I32);
     hashmap_insert(parser->hashmap, "i64", I64);
@@ -81,6 +82,11 @@ ast_T* parser_parse_expr(parser_T* parser)
         case T_IDENT:
         {
             ast_T* ast = init_ast_with_token(AST_EXPR, parser_token_consume(parser, T_IDENT));
+            return ast;
+        }
+        case T_STRING:
+        {
+            ast_T* ast = init_ast_with_token(AST_EXPR, parser_token_consume(parser, T_STRING));
             return ast;
         }
     }

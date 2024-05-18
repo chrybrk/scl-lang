@@ -1,0 +1,20 @@
+; generation
+
+
+; preamble
+format ELF64
+section '.text' executable
+public _start
+
+; extern
+extrn printf;
+
+; function name
+_start:
+
+; function preamble
+push rbp
+mov rbp, rsp
+
+; function postamble
+pop rbp

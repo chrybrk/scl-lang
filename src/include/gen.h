@@ -5,11 +5,24 @@
 #include "array.h"
 #include "hashmap.h"
 
+// fwrite preamble
+// fwrite postamble
+// fwrite externs
+// write function
+
 struct stack_variable
 {
     char* identifier;
     char data_type;
     ssize_t index;
+};
+
+struct function_writeable
+{
+    char* name;
+    char* preamble;
+    char* content;
+    char* postamble;
 };
 
 typedef struct GEN_STRUCT
@@ -19,11 +32,7 @@ typedef struct GEN_STRUCT
     ssize_t last_stack_index;
     hashmap_T* hashmap;
     array_T* vars;
-
-    char* root_preabmble;
-    char* root_postamble;
-    char* root_externs;
-    char* root_statements;
+    array_T* functions;
 } gen_T;
 
 gen_T* init_gen(char* output_pathname);

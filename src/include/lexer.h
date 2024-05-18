@@ -21,6 +21,7 @@ enum {
     // lit
     T_INTLIT,
     T_IDENT,
+    T_STRING,
     T_EOF
 };
 

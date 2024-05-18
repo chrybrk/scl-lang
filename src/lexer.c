@@ -99,6 +99,29 @@ token_T* lexer_create_current_token(lexer_T* lexer, int token_type)
     return token;
 }
 
+token_T* lexer_create_string_token(lexer_T* lexer)
+{
+    lexer_advance(lexer);
+
+    char* string = calloc(1, sizeof(char));
+    ssize_t index = 0;
+
+    while (lexer->current_char && lexer->current_char != '"')
+    {
+        string[index] = lexer->current_char;
+        index++;
+        string = realloc(string, sizeof(char) * index);
+        lexer_advance(lexer);
+    }
+
+    string[index] = '\0';
+    token_T* token = init_token(T_STRING, string);
+
+    lexer_advance(lexer);
+
+    return token;
+}
+
 token_T* next_token(lexer_T* lexer)
 {
     /*
@@ -121,6 +144,7 @@ token_T* next_token(lexer_T* lexer)
         if (!lexer->current_char) return init_token(T_EOF, NULL);
         switch (lexer->current_char)
         {
+            case '"': return lexer_create_string_token(lexer);
             case '(': return lexer_create_current_token(lexer, T_LPARAN);
             case ')': return lexer_create_current_token(lexer, T_RPARAN);
             case ';': return lexer_create_current_token(lexer, T_SEMI);

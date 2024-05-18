@@ -15,6 +15,7 @@ enum {
 
 enum {
     CHAR,
+    STRING,
     I16,
     I32,
     I64
