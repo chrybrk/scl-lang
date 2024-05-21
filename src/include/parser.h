@@ -10,6 +10,8 @@ enum {
     AST_LET,
     AST_EXTERN,
     AST_EXPR,
+    AST_VAR,
+    AST_CALL,
     AST_STATEMENT
 };
 

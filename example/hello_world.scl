@@ -1,0 +1,5 @@
+extern puts;
+extern _exit;
+
+puts("Hello, World!\n");
+_exit(0);

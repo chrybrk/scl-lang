@@ -132,6 +132,23 @@ ast_T* parser_parse_extern(parser_T* parser)
     return ast;
 }
 
+ast_T* parser_parse_ident(parser_T* parser)
+{
+    token_T* variable = parser_token_consume(parser, T_IDENT);
+    if (parser->current_token->token_type == T_ASSIGN)
+    {
+        parser_token_consume(parser, T_ASSIGN);
+        ast_T* expr = parser_parse_expr(parser);
+        parser_token_consume(parser, T_SEMI);
+        return init_ast_stmnt(expr, variable, AST_VAR);
+    }
+    parser_token_consume(parser, T_LPARAN);
+    ast_T* expr = parser_parse_expr(parser);
+    parser_token_consume(parser, T_RPARAN);
+    parser_token_consume(parser, T_SEMI);
+    return init_ast_stmnt(expr, variable, AST_CALL);
+}
+
 // TODO: [done] - create dynamic array to store statements
 ast_T* parser_parse(parser_T* parser)
 {
@@ -143,6 +160,7 @@ ast_T* parser_parse(parser_T* parser)
             case T_EXIT: array_push(stmnt->lst, parser_parse_exit(parser)); break;
             case T_LET: array_push(stmnt->lst, parser_parse_let(parser)); break;
             case T_EXTERN: array_push(stmnt->lst, parser_parse_extern(parser)); break;
+            case T_IDENT: array_push(stmnt->lst, parser_parse_ident(parser)); break;
             default: printf("[ERROR]: parser: failed to parse, illegal token. `%s`.\n", parser->current_token->value), exit(1);
         }
     }

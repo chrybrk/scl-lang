@@ -1,4 +1,2 @@
-extrn printf;
-
 let name: string = "Hello, World!";
 exit(0);

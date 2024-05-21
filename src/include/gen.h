@@ -33,6 +33,7 @@ typedef struct GEN_STRUCT
     hashmap_T* hashmap;
     array_T* vars;
     array_T* functions;
+    array_T* strings;
 } gen_T;
 
 gen_T* init_gen(char* output_pathname);

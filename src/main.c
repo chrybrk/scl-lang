@@ -23,12 +23,8 @@ int main(int argc, char** argv)
     lexer_T* lexer = init_lexer(source);
     parser_T* parser = init_parser(lexer);
     ast_T* root = parser_parse(parser);
-
     gen_T* gen = init_gen("bin/main.s");
     gen_program(gen, root);
-
-    system("fasm bin/main.s");
-    system("gcc -no-pie -nostdlib -lc bin/main.o -o bin/main");
 
     return 0;
 }

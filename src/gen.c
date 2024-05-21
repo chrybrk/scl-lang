@@ -120,6 +120,7 @@ gen_T* init_gen(char* output_pathname)
     gen->hashmap = init_hashmap(DEF_SIZE);
     gen->vars = init_array(sizeof(struct stack_variable));
     gen->functions = init_array(sizeof(struct function_writeable));
+    gen->strings = init_array(sizeof(char*));
     return gen;
 }
 
@@ -148,7 +149,11 @@ void gen_program(gen_T* gen, ast_T* root)
         fprintf(gen->output, "%s", fnc->postamble);
     }
 
-    fprintf(gen->output, "\nsection '.data' writeable");
+    fprintf(gen->output, "\nsection '.data' writeable\n");
+
+    for (ssize_t index = 0; index < gen->strings->index; index++)
+        fprintf(gen->output, "string_%ld: db \"%s\", 0\n", index, (char*)gen->strings->buffer[index]);
+
     fclose(gen->output);
 }
 
@@ -179,6 +184,12 @@ void gen_expr(gen_T* gen, ast_T* node)
             else printf("[ERROR]: variable `%s` is not defined.\n", node->token->value);
             break;
         }
+        case T_STRING:
+        {
+            fnc->content = calculate_write_data(write("string_%d\n", gen->strings->index), fnc->content);
+            array_push(gen->strings, node->token->value);
+            break;
+        }
     };
 }
 
@@ -201,6 +212,7 @@ void gen_let(gen_T* gen, ast_T* node)
         if (((ast_T*)node->node)->token->token_type == T_IDENT)
         {
             struct stack_variable* r_var = gen->vars->buffer[hashmap_find(gen->hashmap, ((ast_T*)node->node)->token->value)->value];
+            if (!r_var) printf("[ERROR]: variable not defined, '%s'.\n", ((ast_T*)node->node)->token->value), exit(1);
             char data_type_size_for_rop = get_data_type_size(r_var->data_type);
             if ((int)data_type_size < (int)data_type_size_for_rop)
                 printf("[WARN]: `%s -> %s`, moving higher size variable data to lower size variable, might result in loss of data.\n", r_var->identifier, node->token->value);
@@ -222,6 +234,8 @@ void gen_let(gen_T* gen, ast_T* node)
         var->identifier = node->token->value;
         var->index = gen->last_stack_index;
 
+        // FIXME: redundant use case of `gen->size_of_stack`, when instead we can just use, `array->index`.
+
         hashmap_insert(gen->hashmap, node->token->value, gen->size_of_stack);
         array_push(gen->vars, var);
         gen->size_of_stack++;
@@ -234,6 +248,50 @@ void gen_extern(gen_T* gen, ast_T* node)
     fprintf(gen->output, "extrn %s\n", node->token->value);
 }
 
+void gen_var(gen_T* gen, ast_T* node)
+{
+    struct function_writeable* fnc = gen->functions->buffer[gen->functions->index - 1];
+    struct hash_pair* value = hashmap_find(gen->hashmap, node->token->value);
+
+    // TODO: Please, just fucking fix it. It is so fucking messy.
+
+    if (value)
+    {
+        struct stack_variable* var = gen->vars->buffer[value->value];
+        char data_type_size_for_lop = get_data_type_size(var->data_type);
+
+        if (((ast_T*)node->node)->token->token_type == T_IDENT)
+        {
+            // FIXME: hashmap_find... thing has to be seperated to be tested if it is (nil).
+            struct stack_variable* r_var = gen->vars->buffer[hashmap_find(gen->hashmap, ((ast_T*)node->node)->token->value)->value];
+            if (!r_var) printf("[ERROR]: variable not defined, '%s'.\n", ((ast_T*)node->node)->token->value), exit(1);
+            char data_type_size_for_rop = get_data_type_size(r_var->data_type);
+            if ((int)data_type_size_for_lop < (int)data_type_size_for_rop)
+                printf("[WARN]: `%s -> %s`, moving higher size variable data to lower size variable, might result in loss of data.\n", r_var->identifier, node->token->value);
+
+            char* r = get_free_reg(data_type_size_for_lop);
+            fnc->content = calculate_write_data(write("\tmov %s, ", r), fnc->content);
+            gen_statement(gen, node->node);
+            fnc->content = calculate_write_data(write("\tmov %s [rbp - %ld], %s\n", get_data_type_value(data_type_size_for_lop), var->index, r), fnc->content);
+            free_regs();
+        }
+        else
+        {
+            fnc->content = calculate_write_data(write("\tmov %s [rbp - %ld], ", get_data_type_value(data_type_size_for_lop), var->index), fnc->content);
+            gen_statement(gen, node->node);
+        }
+    }
+    else printf("[ERROR]: variable not defined, `%s`.\n", node->token->value), exit(1);
+}
+
+void gen_call(gen_T* gen, ast_T* node)
+{
+    struct function_writeable* fnc = gen->functions->buffer[gen->functions->index - 1];
+    fnc->content = calculate_write_data("\tmov rdi, ", fnc->content);
+    gen_statement(gen, node->node);
+    fnc->content = calculate_write_data(write("\tcall %s\n", node->token->value), fnc->content);
+}
+
 void gen_statement(gen_T* gen, ast_T* next_node)
 {
     switch (next_node->ast_type)
@@ -242,5 +300,7 @@ void gen_statement(gen_T* gen, ast_T* next_node)
         case AST_EXPR: gen_expr(gen, next_node); break;
         case AST_LET: gen_let(gen, next_node); break;
         case AST_EXTERN: gen_extern(gen, next_node); break;
+        case AST_VAR: gen_var(gen, next_node); break;
+        case AST_CALL: gen_call(gen, next_node); break;
     }
 }

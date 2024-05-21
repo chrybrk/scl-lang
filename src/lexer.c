@@ -139,7 +139,7 @@ token_T* next_token(lexer_T* lexer)
         lexer_skip_whitespace(lexer);
 
         if (isdigit(lexer->current_char)) return lexer_collect_integer(lexer);
-        if (isalpha(lexer->current_char)) return lexer_collect_identifier(lexer);
+        if (isalpha(lexer->current_char) || lexer->current_char == '_') return lexer_collect_identifier(lexer);
 
         if (!lexer->current_char) return init_token(T_EOF, NULL);
         switch (lexer->current_char)
