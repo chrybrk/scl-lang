@@ -1,5 +1,11 @@
 extern puts;
+extern printf;
+extern strlen;
 extern _exit;
 
-puts("Hello, World!\n");
-_exit(0);
+let hw: string = "Hello, World";
+
+puts(hw);
+strlen(hw);
+
+exit(0);
