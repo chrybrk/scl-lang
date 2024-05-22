@@ -1,0 +1,4 @@
+extern puts;
+extern _exit;
+
+puts("fucker");
