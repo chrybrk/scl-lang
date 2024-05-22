@@ -3,13 +3,14 @@
 #include <stdarg.h>
 
 // TODO: use local string, than directly writing everythin into output
-
+// TODO: cleanup
 static char* reg[] = { "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15" };
 static char* regb[] = { "r8b", "r9b", "r10b", "r11b", "r12b", "r13b", "r14b", "r15b" };
 static char* regw[] = { "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w" };
 static char* regd[] = { "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d" };
 static char* gen_reg_64[] = { "rax", "rbx", "rcx", "rdx" };
 static char* gen_reg_32[] = { "eax", "ebx", "ecx", "edx" };
+static char* gen_reg_16[] = { "ax", "bx", "cx", "dx" };
 
 int free_gen_reg[4] = { 0 };
 int free_reg[8] = { 0 };
@@ -131,8 +132,7 @@ void gen_program(gen_T* gen, ast_T* root)
     fprintf(gen->output, "public _start\n");
 
     struct function_writeable* _start = calloc(1, sizeof(struct function_writeable));
-    _start->preamble = "\tpush rbp\n\tmov rbp, rsp\n";
-    _start->postamble = "\tpop rbp";
+    _start->preamble = calculate_write_data("\tpush rbp\n\tmov rbp, rsp\n", _start->preamble);
     _start->name = "_start";
 
     array_push(gen->functions, _start);
@@ -142,7 +142,10 @@ void gen_program(gen_T* gen, ast_T* root)
 
     for (ssize_t index = 0; index < gen->functions->index; index++)
     {
+        // FIXME: size_of_stack and last_stack_index, has to be properties of function not global.
         struct function_writeable* fnc = gen->functions->buffer[index];
+        fnc->preamble = calculate_write_data(write("\tsub rsp, %ld\n", gen->last_stack_index), fnc->preamble);
+        fnc->postamble = calculate_write_data(write("\tadd rsp, %ld\n\tpop rbp\n", gen->last_stack_index), fnc->postamble);
         fprintf(gen->output, "%s:\n", fnc->name);
         fprintf(gen->output, "%s", fnc->preamble);
         fprintf(gen->output, "%s", fnc->content);
@@ -160,9 +163,9 @@ void gen_program(gen_T* gen, ast_T* root)
 void gen_exit(gen_T* gen, ast_T* node)
 {
     struct function_writeable* fnc = gen->functions->buffer[gen->functions->index - 1];
-    fnc->content = calculate_write_data("\tmov rax, 60\n", fnc->content);
-    fnc->content = calculate_write_data("\tmov rdi, ", fnc->content);
     gen_statement(gen, node->node);
+    fnc->content = calculate_write_data("\tmov rdi, rax\n", fnc->content);
+    fnc->content = calculate_write_data("\tmov rax, 60\n", fnc->content);
     fnc->content = calculate_write_data("\tsyscall\n", fnc->content);
 
 }
@@ -172,21 +175,21 @@ void gen_expr(gen_T* gen, ast_T* node)
     struct function_writeable* fnc = gen->functions->buffer[gen->functions->index - 1];
     switch (node->token->token_type)
     {
-        case T_INTLIT: fnc->content = calculate_write_data(write("%d\n", node->token->intvalue), fnc->content); break;
+        case T_INTLIT: fnc->content = calculate_write_data(write("\tmov rax, %d\n", node->token->intvalue), fnc->content); break;
         case T_IDENT:
         {
             struct hash_pair* value = hashmap_find(gen->hashmap, node->token->value);
             if (value)
             {
                 struct stack_variable* v = gen->vars->buffer[value->value];
-                fnc->content = calculate_write_data(write("[rbp - %ld]\n", v->index), fnc->content);
+                fnc->content = calculate_write_data(write("mov rax, [rbp - %ld]\n", v->index), fnc->content);
             }
             else printf("[ERROR]: variable `%s` is not defined.\n", node->token->value);
             break;
         }
         case T_STRING:
         {
-            fnc->content = calculate_write_data(write("string_%d\n", gen->strings->index), fnc->content);
+            fnc->content = calculate_write_data(write("\tmov rax, string_%d\n", gen->strings->index), fnc->content);
             array_push(gen->strings, node->token->value);
             break;
         }
@@ -209,7 +212,7 @@ void gen_let(gen_T* gen, ast_T* node)
         char* data_type_value = get_data_type_value(data_type_size); // TODO: check for NULL
         gen->last_stack_index += data_type_size;
 
-        if (((ast_T*)node->node)->token->token_type == T_IDENT)
+        if (((ast_T*)node->node)->token->token_type == T_IDENT && ((ast_T*)node->node)->ast_type == AST_EXPR)
         {
             struct stack_variable* r_var = gen->vars->buffer[hashmap_find(gen->hashmap, ((ast_T*)node->node)->token->value)->value];
             if (!r_var) printf("[ERROR]: variable not defined, '%s'.\n", ((ast_T*)node->node)->token->value), exit(1);
@@ -218,15 +221,22 @@ void gen_let(gen_T* gen, ast_T* node)
                 printf("[WARN]: `%s -> %s`, moving higher size variable data to lower size variable, might result in loss of data.\n", r_var->identifier, node->token->value);
 
             char* r = get_free_reg(data_type_size);
-            fnc->content = calculate_write_data(write("\tmov %s, ", r), fnc->content);
             gen_statement(gen, node->node);
+            fnc->content = calculate_write_data(write("\tmov %s, rax\n", r), fnc->content);
             fnc->content = calculate_write_data(write("\tmov %s [rbp - %ld], %s\n", data_type_value, gen->last_stack_index, r), fnc->content);
             free_regs();
         }
+        /*
+        else if (((ast_T*)node->node)->token->token_type != T_IDENT && ((ast_T*)node->node)->ast_type == AST_EXPR)
+        {
+            gen_statement(gen, node->node);
+            fnc->content = calculate_write_data(write("\tmov %s [rbp - %ld], rax\n", data_type_value, gen->last_stack_index), fnc->content);
+        }
+        */
         else
         {
-            fnc->content = calculate_write_data(write("\tmov %s [rbp - %ld], ", data_type_value, gen->last_stack_index), fnc->content);
             gen_statement(gen, node->node);
+            fnc->content = calculate_write_data(write("\tmov %s [rbp - %ld], rax\n", data_type_value, gen->last_stack_index), fnc->content);
         }
 
         struct stack_variable* var = calloc(1, sizeof(struct stack_variable));
@@ -270,15 +280,15 @@ void gen_var(gen_T* gen, ast_T* node)
                 printf("[WARN]: `%s -> %s`, moving higher size variable data to lower size variable, might result in loss of data.\n", r_var->identifier, node->token->value);
 
             char* r = get_free_reg(data_type_size_for_lop);
-            fnc->content = calculate_write_data(write("\tmov %s, ", r), fnc->content);
             gen_statement(gen, node->node);
+            fnc->content = calculate_write_data(write("\tmov %s, rax\n", r), fnc->content);
             fnc->content = calculate_write_data(write("\tmov %s [rbp - %ld], %s\n", get_data_type_value(data_type_size_for_lop), var->index, r), fnc->content);
             free_regs();
         }
         else
         {
-            fnc->content = calculate_write_data(write("\tmov %s [rbp - %ld], ", get_data_type_value(data_type_size_for_lop), var->index), fnc->content);
             gen_statement(gen, node->node);
+            fnc->content = calculate_write_data(write("\tmov %s [rbp - %ld], rax\n", get_data_type_value(data_type_size_for_lop), var->index), fnc->content);
         }
     }
     else printf("[ERROR]: variable not defined, `%s`.\n", node->token->value), exit(1);
@@ -287,8 +297,8 @@ void gen_var(gen_T* gen, ast_T* node)
 void gen_call(gen_T* gen, ast_T* node)
 {
     struct function_writeable* fnc = gen->functions->buffer[gen->functions->index - 1];
-    fnc->content = calculate_write_data("\tmov rdi, ", fnc->content);
     gen_statement(gen, node->node);
+    fnc->content = calculate_write_data("\tmov rdi, rax\n", fnc->content);
     fnc->content = calculate_write_data(write("\tcall %s\n", node->token->value), fnc->content);
 }
 

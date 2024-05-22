@@ -1,11 +1,13 @@
 extern puts;
-extern printf;
+extern putchar;
 extern strlen;
 extern _exit;
 
-let hw: string = "Hello, World";
-
+let hw: string = "rahul";
+let hw2: string = "test";
 puts(hw);
-strlen(hw);
+puts(hw2);
 
-exit(0);
+let size: i64 = strlen(hw);
+
+_exit(size);

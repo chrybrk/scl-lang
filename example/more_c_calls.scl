@@ -1,0 +1,6 @@
+extern atoi;
+extern _exit;
+
+let x: i64 = 10;
+
+_exit(atoi("100"));

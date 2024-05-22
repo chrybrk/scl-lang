@@ -5,12 +5,11 @@
 #include "include/parser.h"
 #include "include/gen.h"
 
-// TODO: [done] - update grammar rule, handling identifier in expr.
-// FIXME: [done] - unable to generate proper assembly.
 // TODO: [done] - able to make use of, `extrn` keyword in fasm.
 // TODO: update grammar rule, handling math expr.
-// TODO: strings
-// TODO: calling, `printf` and writing, `Hello, World!`.
+// TODO: [done] - strings
+// TODO: [done] - calling, `puts` and writing, `Hello, World!`.
+// TODO: check for input file / files, linker commands.
 
 int main(int argc, char** argv)
 {
