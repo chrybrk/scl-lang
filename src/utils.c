@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
+#include <ctype.h>
 #include "include/utils.h"
 
 char* writef(char* s, ...)
@@ -26,4 +27,20 @@ char* alloc_str(char* src, char* dst)
     dst = realloc(dst, sizeof(char) * (strlen(dst) + strlen(src) + 2));
     dst = strcat(dst, src);
     return dst;
+}
+
+char* remove_whitespace(char* src)
+{
+    char* new_string = NULL;
+
+    for (size_t i = 0; i < strlen(src); i++)
+    {
+        if (isalnum(src[i]) || ispunct(src[i]) || src[i] == ' ')
+        {
+            char s[2] = { src[i], '\0' };
+            new_string = alloc_str(s, new_string);
+        }
+    }
+
+    return new_string;
 }

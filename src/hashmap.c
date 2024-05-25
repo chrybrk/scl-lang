@@ -14,7 +14,7 @@ void hashmap_insert(hashmap_T* hashmap, char* key, ssize_t value)
 {
     // formula for selecting index.
     ssize_t unq_value = 0;
-    for (ssize_t i = 0; i < strlen(key); i++) unq_value += (int)key[i];
+    for (size_t i = 0; i < strlen(key); i++) unq_value += (int)key[i];
     unq_value %= hashmap->size;
 
     struct hash_pair* from_buffer = hashmap->buffer[unq_value];
@@ -58,7 +58,7 @@ struct hash_pair* hashmap_find(hashmap_T* hashmap, char* key)
 {
     // formula for selecting index.
     ssize_t unq_value = 0;
-    for (ssize_t i = 0; i < strlen(key); i++) unq_value += (int)key[i];
+    for (size_t i = 0; i < strlen(key); i++) unq_value += (int)key[i];
     unq_value %= hashmap->size;
 
     struct hash_pair* from_buffer = hashmap->buffer[unq_value];

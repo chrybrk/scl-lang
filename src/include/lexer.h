@@ -28,22 +28,27 @@ enum {
 typedef struct TOKEN_STRUCT
 {
     int token_type;
-    char* value;
     int intvalue;
+    int ln;
+    int clm;
+    char* value;
 } token_T;
 
 typedef struct LEXER_STRUCT
 {
+    char* pathname;
     char* source_file;
     ssize_t len;
     ssize_t index;
     char current_char;
+    ssize_t ln;
+    ssize_t clm;
     hashmap_T* hashmap;
-    // TODO: line and column
 } lexer_T;
 
-token_T* init_token(int token_type, char* value);
-lexer_T* init_lexer(char* source_file);
+token_T* init_token(int token_type, char* value, int ln, int clm);
+lexer_T* init_lexer(char* source_file, char* pathname);
 token_T* next_token(lexer_T* lexer);
+char* print_token(int token_type);
 
 #endif

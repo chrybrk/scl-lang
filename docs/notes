@@ -1,20 +1,24 @@
-; generation
+~ more data types
+    ~ pointer
+        - let x: * = "Hello, World!";
+        - let y: i32 = 10;
+        - let z: * = &y;
+    ~ array
+        - let x: *[] = { 10, 20 };
+        - let x: i32[] = { 10, 20 };
+        - let x: char[] = { 10, 20 };
+        - let x: string[] = { 10, 20 };
 
-
-; preamble
-format ELF64
-section '.text' executable
-public _start
-
-; extern
-extrn printf;
-
-; function name
-_start:
-
-; function preamble
-push rbp
-mov rbp, rsp
-
-; function postamble
-pop rbp
+~ ideas?
+    ~ let x: dynamic *; // creates a dynamic array
+    ~ let x: arena *;   // creates a buffer to store.
+    ~ defer return 0;   // runs at the end.
+    ~ asm("mov rdi, rax");
+    ~ better error system [done]
+    ~ clean-up `src/gen.c` [todo]
+    ~ extern support data type
+    ~ lazy evaluation | option to turn it off, because other object may refer to the declared function.
+        - extern only includes when its called.
+        - variable only declare when its been used.
+        - function only define if its been used.
+        - loops only define if the value are above the condition.

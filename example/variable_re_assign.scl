@@ -1,8 +1,7 @@
-let x: i32 = 10;
-let y: i32 = 5;
-let temp: i32 = x;
+let x: i64 = 10;
+let y: i64 = 20;
+let z: i64 = 90;
 
-x = y;
-y = temp;
+y = x = z = 0;
 
-exit(y);
+exit(x = 2);

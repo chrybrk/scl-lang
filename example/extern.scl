@@ -1,0 +1,5 @@
+extern i64 puts;
+extern void _exit;
+
+puts("Hello, World!");
+_exit(0);

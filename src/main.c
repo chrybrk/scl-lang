@@ -1,30 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <string.h>
+#include "include/global.h"
 #include "include/utils.h"
 #include "include/io.h"
 #include "include/lexer.h"
 #include "include/parser.h"
 #include "include/gen.h"
-
-// TODO: [done] - able to make use of, `extrn` keyword in fasm.
-// TODO: update grammar rule, handling math expr.
-// TODO: [done] - strings
-// TODO: [done] - calling, `puts` and writing, `Hello, World!`.
-// TODO: check for input file / files, linker commands.
-
-
-/*
- * scl
- * scl main.scl -o main
- * scl main.scl -a -o main.s
- * scl main.scl -O -o main.o
- * scl main.scl -r -o main
- * scl main.scl -lc -lraylib -o main
- * scl main.scl -L./raylib/lib
- * scl main.scl -C test.c -o main
-*/
+#include "include/error.h"
 
 void scl_help()
 {
@@ -37,20 +20,28 @@ void scl_help()
             \t-l: linker input, -l<libs>\n\
             \t-L: linker libs path, -L<path>\n\
             \t-I: linker libs include path, -I<path>\n\
-            \t-C: compile `.c` file and link\n");
+            \t-C: compile `.c` file and link\n\
+            \t-E: lazy evaluation, for variable, function, externs and loops\n"
+    );
 }
 
-static char* scl_out_file;
-static char* scl_c_file;
-static bool scl_flags[3] = { false };
-static array_T* scl_in_file;
-static array_T* scl_libs;
-static array_T* scl_libs_path;
-static array_T* scl_libs_include_path;
+/*
+ * GLOBALS
+ * DECLARATIONS
+*/
+char* scl_current_file;
+char* scl_out_file;
+char* scl_c_file;
+bool  scl_flags[3];
+array_T* scl_in_file;
+array_T* scl_libs;
+array_T* scl_libs_path;
+array_T* scl_libs_include_path;
+array_T* scl_error_list;
+array_T* scl_python_readlines;
 
 int main(int argc, char** argv)
 {
-    // check if we have input file
     if (argc < 2) scl_help(), exit(1);
     argv++;
 
@@ -123,19 +114,42 @@ int main(int argc, char** argv)
     if (scl_in_file->index == 0) printf("[scl_err]: no input file.\n");
     if (!scl_out_file) scl_out_file = alloc_str("main", scl_out_file);
 
-    char* source = NULL;
+    ast_T* root = init_ast_list(AST_STATEMENT);
+
     for (ssize_t i = 0; i < scl_in_file->index; i++)
     {
         char* path = (char*)scl_in_file->buffer[i];
         char* readf = read_file(path);
-        source = alloc_str(readf, source);
+
+        if (scl_python_readlines) free(scl_python_readlines), scl_python_readlines = NULL;
+        if (!scl_python_readlines) scl_python_readlines = init_array(sizeof(char*));
+
+        char* line = calloc(1, sizeof(char));
+        for (size_t i = 0; i < strlen(readf)+1; i++)
+        {
+            if (readf[i] != '\n' && readf[i] != '\0')
+            {
+                line = strcat(line, writef("%c\0", readf[i]));
+            }
+            else
+            {
+                array_push(scl_python_readlines, line);
+                line = calloc(1, sizeof(char));
+            }
+        }
+
+        scl_current_file = path;
+        lexer_T* lexer = init_lexer(readf, path);
+        parser_T* parser = init_parser(lexer);
+        ast_T* node = parser_parse(parser);
+        for (ssize_t i = 0; i < node->lst->index; i++)
+            array_push(root->lst, node->lst->buffer[i]);
     }
 
-    lexer_T* lexer = init_lexer(source);
-    parser_T* parser = init_parser(lexer);
-    ast_T* root = parser_parse(parser);
     gen_T* gen = init_gen(writef("%s.s", scl_out_file));
     gen_program(gen, root);
+
+    error_flush();
 
     char* libs_for_gcc = NULL;
     for (ssize_t i = 0; i < scl_libs->index; i++)

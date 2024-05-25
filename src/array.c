@@ -1,4 +1,5 @@
 #include "include/array.h"
+#include <stdio.h>
 
 array_T* init_array(ssize_t item_size)
 {
@@ -11,7 +12,8 @@ array_T* init_array(ssize_t item_size)
 
 void array_push(array_T* array, void* item)
 {
-    array->buffer[array->index] = item;
     array->index++;
-    array->buffer = realloc(array->buffer, array->item_size * array->index);
+    if (array->buffer) array->buffer = realloc(array->buffer, array->item_size * array->index);
+    else array->buffer = calloc(1, array->item_size * array->index);
+    array->buffer[array->index - 1] = item;
 }

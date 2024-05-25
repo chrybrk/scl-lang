@@ -15,6 +15,7 @@ struct stack_variable
     char* identifier;
     char data_type;
     ssize_t index;
+    token_T* token;
 };
 
 struct function_writeable

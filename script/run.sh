@@ -1,4 +1,4 @@
-gcc -Isrc/include src/*.c -O3 -o bin/scl
+gcc -Isrc/include src/*.c -Wall -Wextra -O3 -o bin/scl
 if [[ $? -eq 0 ]]; then
     echo "done"
 else

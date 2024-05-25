@@ -1,5 +1,8 @@
 #include <string.h>
+#include "include/global.h"
 #include "include/parser.h"
+#include "include/utils.h"
+#include "include/error.h"
 
 ast_T* init_ast_node(ast_T* node, int type)
 {
@@ -66,8 +69,23 @@ token_T* parser_token_consume(parser_T* parser, int expected_type)
         return token;
     }
 
-    printf("[ERROR]: Parser failed to consume token, `%d:%s`, expected `%d`.", parser->current_token->token_type, parser->current_token->value, expected_type);
-    exit(1);
+    init_error_with_lexer(parser->lexer, E_FAILED, writef("illegal token `%s`, expected `%s`.",
+        print_token(parser->current_token->token_type),
+        print_token(expected_type)
+    ));
+
+    return NULL;
+}
+
+token_T* parser_token_peek(parser_T* parser, int offset)
+{
+    parser_T* parser_copy = calloc(1, sizeof(struct PARSER_STRUCT));
+    parser_copy->lexer = parser->lexer, parser_copy->current_token = parser->current_token;
+
+    token_T* token = parser_copy->current_token;
+    for (int i = 0; i < offset; i++) parser_token_consume(parser_copy, parser_copy->current_token->token_type);
+
+    return token;
 }
 
 ast_T* parser_parse_expr(parser_T* parser)
@@ -82,17 +100,13 @@ ast_T* parser_parse_expr(parser_T* parser)
         case T_IDENT:
         {
             token_T* variable = parser_token_consume(parser, T_IDENT);
-            /*
             if (parser->current_token->token_type == T_ASSIGN)
             {
                 parser_token_consume(parser, T_ASSIGN);
                 ast_T* expr = parser_parse_expr(parser);
-                parser_token_consume(parser, T_SEMI);
                 return init_ast_stmnt(expr, variable, AST_VAR);
             }
-            else */
-
-            if (parser->current_token->token_type == T_LPARAN)
+            else if (parser->current_token->token_type == T_LPARAN)
             {
                 parser_token_consume(parser, T_LPARAN);
                 ast_T* expr = parser_parse_expr(parser);
@@ -106,7 +120,17 @@ ast_T* parser_parse_expr(parser_T* parser)
             ast_T* ast = init_ast_with_token(AST_EXPR, parser_token_consume(parser, T_STRING));
             return ast;
         }
+        default:
+        {
+            init_error_with_lexer(parser->lexer,
+                    E_FAILED,
+                    writef("illegal token, `%s`", print_token(parser->current_token->token_type))
+            );
+            parser_token_consume(parser, parser->current_token->token_type);
+        }
     }
+
+    return NULL;
 }
 
 ast_T* parser_parse_exit(parser_T* parser)
@@ -127,12 +151,13 @@ ast_T* parser_parse_let(parser_T* parser)
     parser_token_consume(parser, T_ASSIGN);
     ast_T* expr = parser_parse_expr(parser);
 
-    // TODO: [done] - cleanup and hashmap
+    if (!expr) init_error_with_lexer(parser->lexer, E_FAILED, "expected expr."), error_flush();
+
     ast_T* ast = init_ast_stmnt(expr, ident, AST_LET);
 
     struct hash_pair* value = hashmap_find(parser->hashmap, data_type->value);
     if (value) ast->data_type = value->value;
-    else printf("[WARN]: parser: data_type `%s` is not implemented.\n", data_type->value), exit(1);
+    else init_error_with_lexer(parser->lexer, E_FAILED, writef("undefined data type `%s`, expected `char, i16, i32, i64`.", data_type->value));
 
     return ast;
 }
@@ -146,7 +171,6 @@ ast_T* parser_parse_extern(parser_T* parser)
     return ast;
 }
 
-// TODO: [done] - create dynamic array to store statements
 ast_T* parser_parse(parser_T* parser)
 {
     ast_T* stmnt = init_ast_list(AST_STATEMENT);
@@ -158,7 +182,6 @@ ast_T* parser_parse(parser_T* parser)
             case T_LET: array_push(stmnt->lst, parser_parse_let(parser)); break;
             case T_EXTERN: array_push(stmnt->lst, parser_parse_extern(parser)); break;
             default: array_push(stmnt->lst, parser_parse_expr(parser));
-            // default: printf("[ERROR]: parser: failed to parse, illegal token. `%s`.\n", parser->current_token->value), exit(1);
         }
 
         parser_token_consume(parser, T_SEMI);

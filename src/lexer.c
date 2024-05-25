@@ -1,23 +1,52 @@
-#include "include/lexer.h"
 #include <ctype.h>
 #include <string.h>
+#include "include/lexer.h"
+#include "include/utils.h"
+#include "include/error.h"
 
-token_T* init_token(int token_type, char* value)
+token_T* init_token(int token_type, char* value, int ln, int clm)
 {
     token_T* token = calloc(1, sizeof(struct TOKEN_STRUCT));
     token->token_type = token_type;
-    token->value = value;
     token->intvalue = 0;
+    token->ln = ln;
+    token->clm = clm;
+    token->value = value;
     return token;
 }
 
-lexer_T* init_lexer(char* source_file)
+char* print_token(int token_type)
+{
+    switch (token_type)
+    {
+        case T_EXIT: return "exit";
+        case T_LET: return "let";
+        case T_EXTERN: return "extern";
+        case T_LPARAN: return "(";
+        case T_RPARAN: return ")";
+        case T_SEMI: return ";";
+        case T_COLON: return ":";
+        case T_ASSIGN: return "=";
+        case T_INTLIT: return "integer";
+        case T_IDENT: return "identifier";
+        case T_STRING: return "string";
+        case T_EOF: return "eof";
+        default: init_error(E_FAILED, writef("[ERROR]: token: illegal token to print, `%d`\n", token_type));
+    }
+
+    return NULL;
+}
+
+lexer_T* init_lexer(char* source_file, char* pathname)
 {
     lexer_T* lexer = calloc(1, sizeof(struct LEXER_STRUCT));
+    lexer->pathname = pathname;
     lexer->source_file = source_file;
     lexer->len = strlen(source_file);
     lexer->index = 0;
     lexer->current_char = lexer->source_file[lexer->index];
+    lexer->ln = 1;
+    lexer->clm = 1;
     lexer->hashmap = init_hashmap(DEF_SIZE);
 
     // declare keywords
@@ -30,9 +59,12 @@ lexer_T* init_lexer(char* source_file)
 
 void lexer_advance(lexer_T* lexer)
 {
-    lexer->current_char = '\0';
     if (lexer->index < lexer->len)
+    {
+        lexer->clm++;
         lexer->index++, lexer->current_char = lexer->source_file[lexer->index];
+    }
+    else lexer->current_char = '\0';
 }
 
 void lexer_skip_whitespace(lexer_T* lexer)
@@ -43,7 +75,15 @@ void lexer_skip_whitespace(lexer_T* lexer)
             lexer->current_char == '\t' ||
             lexer->current_char == 10 ||
             lexer->current_char == 32
-           ) lexer_advance(lexer);
+           )
+    {
+        if (lexer->current_char == '\n')
+        {
+            lexer->ln++;
+            lexer->clm = 1;
+        }
+        lexer_advance(lexer);
+    }
 }
 
 token_T* lexer_collect_integer(lexer_T* lexer)
@@ -60,7 +100,7 @@ token_T* lexer_collect_integer(lexer_T* lexer)
 
     string[index] = '\0';
 
-    token_T* token = init_token(T_INTLIT, NULL);
+    token_T* token = init_token(T_INTLIT, NULL, lexer->ln, lexer->clm);
     token->intvalue = atoi(string);
 
     return token;
@@ -83,8 +123,8 @@ token_T* lexer_collect_identifier(lexer_T* lexer)
     token_T* token;
 
     struct hash_pair* hash = hashmap_find(lexer->hashmap, string);
-    if (hash) token = init_token(hash->value, string);
-    else token = init_token(T_IDENT, string);
+    if (hash) token = init_token(hash->value, string, lexer->ln, lexer->clm);
+    else token = init_token(T_IDENT, string, lexer->ln, lexer->clm);
 
     return token;
 }
@@ -94,7 +134,7 @@ token_T* lexer_create_current_token(lexer_T* lexer, int token_type)
     char string[2];
     string[0] = lexer->current_char;
     string[1] = '\0';
-    token_T* token = init_token(token_type, string);
+    token_T* token = init_token(token_type, string, lexer->ln, lexer->clm);
     lexer_advance(lexer);
     return token;
 }
@@ -115,7 +155,7 @@ token_T* lexer_create_string_token(lexer_T* lexer)
     }
 
     string[index] = '\0';
-    token_T* token = init_token(T_STRING, string);
+    token_T* token = init_token(T_STRING, string, lexer->ln, lexer->clm);
 
     lexer_advance(lexer);
 
@@ -124,16 +164,6 @@ token_T* lexer_create_string_token(lexer_T* lexer)
 
 token_T* next_token(lexer_T* lexer)
 {
-    /*
-     * skip whitespaces
-     * check for integer
-     * check for identifier
-     * check for
-     *      lparan
-     *      rparan
-     *      semi
-    */
-
     while (lexer->current_char)
     {
         lexer_skip_whitespace(lexer);
@@ -141,7 +171,7 @@ token_T* next_token(lexer_T* lexer)
         if (isdigit(lexer->current_char)) return lexer_collect_integer(lexer);
         if (isalpha(lexer->current_char) || lexer->current_char == '_') return lexer_collect_identifier(lexer);
 
-        if (!lexer->current_char) return init_token(T_EOF, NULL);
+        if (!lexer->current_char) return init_token(T_EOF, NULL, lexer->ln, lexer->clm);
         switch (lexer->current_char)
         {
             case '"': return lexer_create_string_token(lexer);
@@ -153,5 +183,5 @@ token_T* next_token(lexer_T* lexer)
         }
     }
 
-    return init_token(T_EOF, NULL);
+    return init_token(T_EOF, NULL, lexer->ln, lexer->clm);
 }
