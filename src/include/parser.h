@@ -16,6 +16,8 @@ enum {
 };
 
 enum {
+    POINTER,
+    VOID,
     CHAR,
     STRING,
     I16,

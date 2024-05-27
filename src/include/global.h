@@ -7,6 +7,7 @@
 extern char* scl_current_file;
 extern char* scl_out_file;
 extern char* scl_c_file;
+extern char* scl_asm_file;
 extern bool  scl_flags[3];
 extern array_T* scl_in_file;
 extern array_T* scl_libs;

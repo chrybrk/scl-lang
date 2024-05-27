@@ -51,6 +51,7 @@ parser_T* init_parser(lexer_T* lexer)
     parser->current_token = next_token(parser->lexer);
     parser->hashmap = init_hashmap(DEF_SIZE);
 
+    hashmap_insert(parser->hashmap, "void", VOID);
     hashmap_insert(parser->hashmap, "char", CHAR);
     hashmap_insert(parser->hashmap, "string", STRING);
     hashmap_insert(parser->hashmap, "i16", I16);
@@ -151,13 +152,17 @@ ast_T* parser_parse_let(parser_T* parser)
     parser_token_consume(parser, T_ASSIGN);
     ast_T* expr = parser_parse_expr(parser);
 
-    if (!expr) init_error_with_lexer(parser->lexer, E_FAILED, "expected expr."), error_flush();
+    if (!data_type)
+        init_error_with_lexer(parser->lexer, E_FAILED, "expected data type, `char, i16, i32, i64, string`."), error_flush();
+
+    if (!expr)
+        init_error_with_lexer(parser->lexer, E_FAILED, "expected expr."), error_flush();
+
+    struct hash_pair* value = value = hashmap_find(parser->hashmap, data_type->value);
+    if (!value) init_error_with_lexer(parser->lexer, E_FAILED, writef("undefined data type `%s`, expected `char, string, i16, i32, i64`.", data_type->value));
 
     ast_T* ast = init_ast_stmnt(expr, ident, AST_LET);
-
-    struct hash_pair* value = hashmap_find(parser->hashmap, data_type->value);
-    if (value) ast->data_type = value->value;
-    else init_error_with_lexer(parser->lexer, E_FAILED, writef("undefined data type `%s`, expected `char, i16, i32, i64`.", data_type->value));
+    ast->data_type = value->value;
 
     return ast;
 }
@@ -165,8 +170,18 @@ ast_T* parser_parse_let(parser_T* parser)
 ast_T* parser_parse_extern(parser_T* parser)
 {
     parser_token_consume(parser, T_EXTERN);
+    token_T* data_type = parser_token_consume(parser, T_IDENT);
     token_T* ident = parser_token_consume(parser, T_IDENT);
+
+    if (!data_type || !ident)
+        init_error_with_token(parser->current_token, E_FAILED, "illegal behaviour, expected `extern <data_type> <identifier>;`"),
+            error_flush();
+
     ast_T* ast = init_ast_with_token(AST_EXTERN, ident);
+
+    struct hash_pair* value = hashmap_find(parser->hashmap, data_type->value);
+    if (value) ast->data_type = value->value;
+    else init_error_with_lexer(parser->lexer, E_FAILED, writef("undefined data type `%s`, expected `char, string, i16, i32, i64`.", data_type->value));
 
     return ast;
 }

@@ -57,6 +57,7 @@ lexer_T* init_lexer(char* source_file, char* pathname)
     return lexer;
 }
 
+// it will advance the lexer
 void lexer_advance(lexer_T* lexer)
 {
     if (lexer->index < lexer->len)
@@ -67,6 +68,8 @@ void lexer_advance(lexer_T* lexer)
     else lexer->current_char = '\0';
 }
 
+// it will remove whitespace
+// it will also change ln, clm variable.
 void lexer_skip_whitespace(lexer_T* lexer)
 {
     while (
@@ -86,6 +89,7 @@ void lexer_skip_whitespace(lexer_T* lexer)
     }
 }
 
+// it collects integer value.
 token_T* lexer_collect_integer(lexer_T* lexer)
 {
     char* string = calloc(1, sizeof(char) * (sizeof(unsigned long int) * 256));
@@ -106,6 +110,8 @@ token_T* lexer_collect_integer(lexer_T* lexer)
     return token;
 }
 
+// it collects identifier
+// -> it can be keyword
 token_T* lexer_collect_identifier(lexer_T* lexer)
 {
     char* string = calloc(1, sizeof(char));
@@ -129,6 +135,7 @@ token_T* lexer_collect_identifier(lexer_T* lexer)
     return token;
 }
 
+// it will generate token from current character.
 token_T* lexer_create_current_token(lexer_T* lexer, int token_type)
 {
     char string[2];
@@ -139,6 +146,7 @@ token_T* lexer_create_current_token(lexer_T* lexer, int token_type)
     return token;
 }
 
+// it will generate string token from current index to nth index.
 token_T* lexer_create_string_token(lexer_T* lexer)
 {
     lexer_advance(lexer);

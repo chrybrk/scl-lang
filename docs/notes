@@ -9,16 +9,45 @@
         - let x: char[] = { 10, 20 };
         - let x: string[] = { 10, 20 };
 
-~ ideas?
-    ~ let x: dynamic *; // creates a dynamic array
-    ~ let x: arena *;   // creates a buffer to store.
-    ~ defer return 0;   // runs at the end.
+~ todo
+    ~ let x: dynamic[sizeof(i32)];  // creates a dynamic array
+    ~ let x: arena[2M];             // creates a buffer to store.
+    ~ defer return 0;               // runs at the end.
     ~ asm("mov rdi, rax");
     ~ better error system [done]
-    ~ clean-up `src/gen.c` [todo]
-    ~ extern support data type
+    ~ write meaningful comments to everything.
+    ~ clean-up `src/gen.c` [done]
+    ~ extern support data type [todo]
+    ~ function calling: zero or more arguments
+    ~ include different file
     ~ lazy evaluation | option to turn it off, because other object may refer to the declared function.
+    | OR, define function as extern so lazy evaluation doesn't affect it.
         - extern only includes when its called.
         - variable only declare when its been used.
         - function only define if its been used.
         - loops only define if the value are above the condition.
+
+~ Keywords
+    - let
+    - extern
+    - function
+    - static
+    - struct
+    - for
+    - while
+    - do
+    - switch
+    - if-else-if
+
+~ Data Types
+    - void
+    - char
+    - i16, u16
+    - i32, u32
+    - i64, u64
+    - sf, uf
+    - sd, ud
+    - string, U8string
+    - *
+    - dynamic
+    - arena

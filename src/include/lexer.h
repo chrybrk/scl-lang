@@ -46,9 +46,16 @@ typedef struct LEXER_STRUCT
     hashmap_T* hashmap;
 } lexer_T;
 
+// initiate token
 token_T* init_token(int token_type, char* value, int ln, int clm);
+
+// initiate lexer
 lexer_T* init_lexer(char* source_file, char* pathname);
+
+// it will give next token upon calling
 token_T* next_token(lexer_T* lexer);
+
+// print the token from its type.
 char* print_token(int token_type);
 
 #endif

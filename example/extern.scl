@@ -1,5 +1,9 @@
-extern i64 puts;
+extern i32 puts;
 extern void _exit;
+extern i32 atoi;
+
+let x: i32 = atoi("10");
+let y: i32 = _exit(x);
 
 puts("Hello, World!");
-_exit(0);
+_exit(x);

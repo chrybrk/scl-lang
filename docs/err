@@ -1,0 +1,19 @@
+[ERROR]: example/extern.scl:1:13: illegal token `;`, expected `identifier`.
+ 1 | extern puts;
+
+[ERROR]: example/extern.scl:1:12: illegal behaviour, expected `extern <data_type> <identifier>;`
+ 1 | extern puts;
+
+[ERROR]: example/extern.scl:5:10: illegal token `=`, expected `identifier`.
+ 5 | let x: = atoi("10");
+
+[ERROR]: example/extern.scl:5:22: expected data type, `char, i16, i32, i64, string`.
+ 5 | let x: = atoi("10");
+
+[ERROR]: example/extern.scl:6:7: function `_exit` has return type of void.
+ 6 | let y: i32 = _exit(0);
+
+
+
+
+
