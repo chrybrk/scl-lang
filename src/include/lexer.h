@@ -17,6 +17,8 @@ enum {
     T_SEMI,
     T_COLON,
     T_ASSIGN,
+    T_PLUS,
+    T_MINUS,
 
     // lit
     T_INTLIT,

@@ -12,6 +12,7 @@ enum {
     AST_EXPR,
     AST_VAR,
     AST_CALL,
+    AST_BINOP,
     AST_STATEMENT
 };
 
@@ -29,7 +30,10 @@ typedef struct AST_STRUCT
 {
     int ast_type;
     int data_type;
+    int op;
+    void* left_node;
     void* node;
+    void* right_node;
     array_T* lst;
     token_T* token;
 } ast_T;
@@ -46,6 +50,10 @@ ast_T* init_ast_list(int type);
 ast_T* init_ast_stmnt(ast_T* expr_node, token_T* ident, int type);
 ast_T* init_ast_with_token(int type, token_T* token);
 parser_T* init_parser(lexer_T* lexer);
+ast_T* parser_parse_factor(parser_T* parser);
+ast_T* parser_parse_term(parser_T* parser);
+ast_T* parser_parse_expr(parser_T* parser);
+ast_T* parser_parse(parser_T* parser);
 ast_T* parser_parse(parser_T* parser);
 
 #endif

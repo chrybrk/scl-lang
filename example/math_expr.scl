@@ -1,0 +1,5 @@
+extern i64 atoi;
+
+let x: i64 = 4 - 2 + 2;
+
+exit(x);

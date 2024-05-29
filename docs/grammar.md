@@ -4,7 +4,7 @@ program:
     extern
 
 extern:
-    extern ident;
+    extern type ident;
 
 exit:
     exit([expr]);
@@ -17,7 +17,10 @@ type:
     i32
     i64
     char
+    string
 
 expr:
     intlit
     ident
+    string
+    function call

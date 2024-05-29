@@ -2,8 +2,9 @@ extern i32 puts;
 extern void _exit;
 extern i32 atoi;
 
+puts("Hello, World!");
+
 let x: i32 = atoi("10");
 let y: i32 = _exit(x);
 
-puts("Hello, World!");
 _exit(x);

@@ -4,6 +4,15 @@
 #include "include/utils.h"
 #include "include/error.h"
 
+ast_T* init_ast(int type)
+{
+    ast_T* ast = calloc(1, sizeof(struct AST_STRUCT));
+    ast->ast_type = type;
+    ast->lst = NULL;
+    ast->token = NULL;
+    return ast;
+}
+
 ast_T* init_ast_node(ast_T* node, int type)
 {
     ast_T* ast = calloc(1, sizeof(struct AST_STRUCT));
@@ -41,6 +50,17 @@ ast_T* init_ast_with_token(int type, token_T* token)
     ast->node = NULL;
     ast->lst = NULL;
     ast->token = token;
+    return ast;
+}
+
+ast_T* init_ast_with_two_nodes(ast_T* left_node, ast_T* node, int type)
+{
+    ast_T* ast = calloc(1, sizeof(struct AST_STRUCT));
+    ast->ast_type = type;
+    ast->left_node = left_node;
+    ast->node = node;
+    ast->lst = NULL;
+    ast->token = NULL;
     return ast;
 }
 
@@ -89,7 +109,7 @@ token_T* parser_token_peek(parser_T* parser, int offset)
     return token;
 }
 
-ast_T* parser_parse_expr(parser_T* parser)
+ast_T* parser_parse_factor(parser_T* parser)
 {
     switch (parser->current_token->token_type)
     {
@@ -132,6 +152,31 @@ ast_T* parser_parse_expr(parser_T* parser)
     }
 
     return NULL;
+}
+
+ast_T* parser_parse_term(parser_T* parser)
+{
+    ast_T* left = parser_parse_factor(parser);
+
+    while (
+            parser->current_token->token_type == T_PLUS ||
+            parser->current_token->token_type == T_MINUS
+        )
+    {
+        ast_T* bin_expr = init_ast(AST_BINOP);
+        bin_expr->op = parser_token_consume(parser, parser->current_token->token_type)->token_type;
+        bin_expr->left_node = left;
+        bin_expr->right_node = parser_parse_expr(parser);
+        return bin_expr;
+    }
+
+    return left;
+}
+
+ast_T* parser_parse_expr(parser_T* parser)
+{
+    ast_T* left = parser_parse_term(parser);
+    return left;
 }
 
 ast_T* parser_parse_exit(parser_T* parser)

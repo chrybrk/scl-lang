@@ -254,7 +254,6 @@ void gen_variable_identifier(gen_T* gen, ast_T* node)
                 );
 
             char r_variable_size = get_data_type_size(r_variable->data_type);
-            char* r_variable_dt_value = get_data_type_value(r_variable_size);
 
             // if they are not the same size, or left variable size is lower then we have an warning to generate.
             if ((int)l_variable_size < (int)r_variable_size)
@@ -265,6 +264,8 @@ void gen_variable_identifier(gen_T* gen, ast_T* node)
                             r_variable->identifier,
                             node->token->value)
                 );
+
+            break;
         }
         case AST_CALL:
         {
@@ -283,6 +284,8 @@ void gen_variable_identifier(gen_T* gen, ast_T* node)
                                 node->token->value)
                     );
             }
+
+            break;
         }
     }
 
@@ -311,24 +314,41 @@ void gen_variable_selection(gen_T* gen, ast_T* node)
 
     fnc->last_stack_index += l_variable_size;
 
-    switch (next_node->token->token_type)
-    {
-        case T_IDENT: gen_variable_identifier(gen, node); break;
-        case T_INTLIT:
+    if (next_node->token)
+        switch (next_node->token->token_type)
         {
-            gen_statement(gen, node->node);
+            case T_IDENT: gen_variable_identifier(gen, node); break;
+            case T_INTLIT:
+            {
+                gen_statement(gen, node->node);
 
-            char* gr = get_register(l_variable_size, RT_gen);
+                char* gr = get_register(l_variable_size, RT_gen);
 
-            fnc->content = alloc_str(
-                    writef("\tmov %s [rbp - %ld], %s\n",
-                        l_variable_dt_value,
-                        fnc->last_stack_index,
-                        gr),
-                    fnc->content);
+                fnc->content = alloc_str(
+                        writef("\tmov %s [rbp - %ld], %s\n",
+                            l_variable_dt_value,
+                            fnc->last_stack_index,
+                            gr),
+                        fnc->content);
 
-            free_register();
+                free_register();
+                break;
+            }
         }
+    else
+    {
+        gen_statement(gen, node->node);
+
+        char* gr = get_register(l_variable_size, RT_gen);
+
+        fnc->content = alloc_str(
+                writef("\tmov %s [rbp - %ld], %s\n",
+                    l_variable_dt_value,
+                    fnc->last_stack_index,
+                    gr),
+                fnc->content);
+
+        free_register();
     }
 }
 
@@ -361,7 +381,6 @@ void gen_let(gen_T* gen, ast_T* node)
 
 void gen_var(gen_T* gen, ast_T* node)
 {
-    struct function_writeable* fnc = gen->functions->buffer[gen->functions->index - 1];
     struct hash_pair* value = hashmap_find(gen->hashmap, node->token->value);
 
     if (value) gen_variable_selection(gen, node);
@@ -387,6 +406,32 @@ void gen_call(gen_T* gen, ast_T* node)
     fnc->content = alloc_str(writef("\tcall %s\n", node->token->value), fnc->content);
 }
 
+void gen_binop(gen_T* gen, ast_T* node)
+{
+    struct function_writeable* fnc = gen->functions->buffer[gen->functions->index - 1];
+
+    gen_statement(gen, node->right_node);
+    fnc->content = alloc_str(
+            "\tpush rax\n",
+            fnc->content
+        );
+    gen_statement(gen, node->left_node);
+
+    switch (node->op)
+    {
+        case T_PLUS:
+        {
+            fnc->content = alloc_str("\tpop rdx\n\tadd rax, rdx\n", fnc->content);
+            break;
+        }
+        case T_MINUS:
+        {
+            fnc->content = alloc_str("\tpop rdx\n\tsub rax, rdx\n", fnc->content);
+            break;
+        }
+    }
+}
+
 void gen_statement(gen_T* gen, ast_T* next_node)
 {
     switch (next_node->ast_type)
@@ -397,5 +442,6 @@ void gen_statement(gen_T* gen, ast_T* next_node)
         case AST_EXTERN: gen_extern(gen, next_node); break;
         case AST_VAR: gen_var(gen, next_node); break;
         case AST_CALL: gen_call(gen, next_node); break;
+        case AST_BINOP: gen_binop(gen, next_node); break;
     }
 }
