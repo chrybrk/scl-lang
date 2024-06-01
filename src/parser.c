@@ -126,6 +126,15 @@ ast_T* parser_parse_factor(parser_T* parser)
 {
     switch (parser->current_token->token_type)
     {
+        case T_LPARAN:
+        {
+            parser_token_consume(parser, T_LPARAN);
+            ast_T* ast = parser_parse_expr(parser);
+            parser_token_consume(parser, T_RPARAN);
+            
+            return ast;
+        }
+
         case T_INTLIT:
         {
             ast_T* ast = init_ast_with_token(AST_EXPR, parser_token_consume(parser, T_INTLIT));
@@ -142,10 +151,22 @@ ast_T* parser_parse_factor(parser_T* parser)
             }
             else if (parser->current_token->token_type == T_LPARAN)
             {
+                ast_T* ast = init_ast(AST_CALL);
+                ast->token = variable;
+                ast->lst = init_array(sizeof(struct AST_STRUCT));
+
                 parser_token_consume(parser, T_LPARAN);
                 ast_T* expr = parser_parse_expr(parser);
+                array_push(ast->lst, expr);
+                while (parser->current_token->token_type == T_COMMA)
+                {
+                    parser_token_consume(parser, T_COMMA);
+                    expr = parser_parse_expr(parser);
+                    array_push(ast->lst, expr);
+                }
                 parser_token_consume(parser, T_RPARAN);
-                return init_ast_stmnt(expr, variable, AST_CALL);
+
+                return ast;
             }
             return init_ast_with_token(AST_EXPR, variable);
         }
@@ -170,6 +191,10 @@ ast_T* parser_parse_factor(parser_T* parser)
 ast_T* parser_parse_term(parser_T* parser)
 {
     ast_T* left = parser_parse_factor(parser);
+
+    while (parser->current_token->token_type == T_STAR || parser->current_token->token_type == T_FSLASH || parser->current_token->token_type == T_MODULO)
+        left = init_binOP(left, parser_parse_factor(parser), parser_token_consume(parser, parser->current_token->token_type)->token_type);
+
     return left;
 }
 

@@ -1,0 +1,7 @@
+extern void print_int;
+extern void print;
+
+print("Hello, World!");
+print_int(10 + 20 * 10 / 2);
+
+exit(0);

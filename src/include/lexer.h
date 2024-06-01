@@ -16,9 +16,13 @@ enum {
     T_RPARAN,
     T_SEMI,
     T_COLON,
+    T_COMMA,
     T_ASSIGN,
     T_PLUS,
     T_MINUS,
+    T_STAR,
+    T_FSLASH,
+    T_MODULO,
 
     // lit
     T_INTLIT,

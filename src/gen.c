@@ -203,21 +203,21 @@ void gen_expr(gen_T* gen, ast_T* node)
     struct function_writeable* fnc = gen->functions->buffer[gen->functions->index - 1];
     switch (node->token->token_type)
     {
-        case T_INTLIT: fnc->content = alloc_str(writef("\tmov rax, %d\n", node->token->intvalue), fnc->content); break;
+        case T_INTLIT: fnc->content = alloc_str(writef("\tpush %d\n", node->token->intvalue), fnc->content); break;
         case T_IDENT:
         {
             struct hash_pair* value = hashmap_find(gen->hashmap, node->token->value);
             if (value)
             {
                 struct stack_variable* v = gen->vars->buffer[value->value];
-                fnc->content = alloc_str(writef("\tmov rax, [rbp - %ld]\n", v->index), fnc->content);
+                fnc->content = alloc_str(writef("\tmov rax, [rbp - %ld]\n\tpush rax\n", v->index), fnc->content);
             }
             else init_error_with_token(node->token, E_FAILED, writef("variable `%s` is not defined.\n", node->token->value));
             break;
         }
         case T_STRING:
         {
-            fnc->content = alloc_str(writef("\tmov rax, string_%d\n", gen->strings->index), fnc->content);
+            fnc->content = alloc_str(writef("\tmov rax, string_%d\n\tpush rax\n", gen->strings->index), fnc->content);
             array_push(gen->strings, node->token->value);
             break;
         }
@@ -294,7 +294,7 @@ void gen_variable_identifier(gen_T* gen, ast_T* node)
 
     gen_statement(gen, next_node);
 
-    fnc->content = alloc_str(writef("\tmov %s, %s\n", r, gr), fnc->content);
+    fnc->content = alloc_str(writef("\tpop %s\n\tmov %s, %s\n", gr, r, gr), fnc->content);
     fnc->content = alloc_str(writef("\tmov %s [rbp - %ld], %s\n",
                 l_variable_dt_value,
                 fnc->last_stack_index,
@@ -325,7 +325,8 @@ void gen_variable_selection(gen_T* gen, ast_T* node)
                 char* gr = get_register(l_variable_size, RT_gen);
 
                 fnc->content = alloc_str(
-                        writef("\tmov %s [rbp - %ld], %s\n",
+                        writef("\tpop %s\n\tmov %s [rbp - %ld], %s\n",
+                            gr,
                             l_variable_dt_value,
                             fnc->last_stack_index,
                             gr),
@@ -342,7 +343,8 @@ void gen_variable_selection(gen_T* gen, ast_T* node)
         char* gr = get_register(l_variable_size, RT_gen);
 
         fnc->content = alloc_str(
-                writef("\tmov %s [rbp - %ld], %s\n",
+                writef("\tpop %s\n\tmov %s [rbp - %ld], %s\n",
+                    gr,
                     l_variable_dt_value,
                     fnc->last_stack_index,
                     gr),
@@ -401,8 +403,15 @@ void gen_extern(gen_T* gen, ast_T* node)
 void gen_call(gen_T* gen, ast_T* node)
 {
     struct function_writeable* fnc = gen->functions->buffer[gen->functions->index - 1];
-    gen_statement(gen, node->node);
-    fnc->content = alloc_str("\tmov rdi, rax\n", fnc->content);
+
+    for (ssize_t i = 0; i < node->lst->index; i++)
+    {
+        char* ar = get_register(8, RT_arg);
+        gen_statement(gen, (ast_T*)node->lst->buffer[i]);
+        fnc->content = alloc_str(writef("\tpop %s\n", ar), fnc->content);
+    }
+
+    free_register();
     fnc->content = alloc_str(writef("\tcall %s\n", node->token->value), fnc->content);
 }
 
@@ -414,11 +423,7 @@ void gen_binop(gen_T* gen, ast_T* node)
     ast_T* rn = node->right_node;
 
     gen_statement(gen, ln);
-    fnc->content = alloc_str("\tpush rax\n", fnc->content);
-
     gen_statement(gen, rn);
-    if (rn->ast_type == AST_EXPR)
-        fnc->content = alloc_str("\tpush rax\n", fnc->content);
 
     switch (node->op)
     {
@@ -433,6 +438,30 @@ void gen_binop(gen_T* gen, ast_T* node)
             fnc->content = alloc_str("\tpop rdx\n", fnc->content);
             fnc->content = alloc_str("\tpop rax\n", fnc->content);
             fnc->content = alloc_str("\tsub rax, rdx\n", fnc->content);
+            fnc->content = alloc_str("\tpush rax\n", fnc->content);
+            break;
+
+        case T_STAR:
+            fnc->content = alloc_str("\tpop rdx\n", fnc->content);
+            fnc->content = alloc_str("\tpop rax\n", fnc->content);
+            fnc->content = alloc_str("\tmul rdx\n", fnc->content);
+            fnc->content = alloc_str("\tpush rax\n", fnc->content);
+            break;
+
+        case T_FSLASH:
+            fnc->content = alloc_str("\txor rdx, rdx\n", fnc->content);
+            fnc->content = alloc_str("\tpop rcx\n", fnc->content);
+            fnc->content = alloc_str("\tpop rax\n", fnc->content);
+            fnc->content = alloc_str("\tdiv rcx\n", fnc->content);
+            fnc->content = alloc_str("\tpush rax\n", fnc->content);
+            break;
+
+        case T_MODULO:
+            fnc->content = alloc_str("\txor rdx, rdx\n", fnc->content);
+            fnc->content = alloc_str("\tpop rcx\n", fnc->content);
+            fnc->content = alloc_str("\tpop rax\n", fnc->content);
+            fnc->content = alloc_str("\tdiv rcx\n", fnc->content);
+            fnc->content = alloc_str("\tmov rax, rdx\n", fnc->content);
             fnc->content = alloc_str("\tpush rax\n", fnc->content);
             break;
     }

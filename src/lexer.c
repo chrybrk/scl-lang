@@ -26,8 +26,12 @@ char* print_token(int token_type)
         case T_RPARAN: return ")";
         case T_SEMI: return ";";
         case T_COLON: return ":";
+        case T_COMMA: return ",";
         case T_PLUS: return "+";
         case T_MINUS: return "-";
+        case T_STAR: return "*";
+        case T_FSLASH: return "/";
+        case T_MODULO: return "%";
         case T_ASSIGN: return "=";
         case T_INTLIT: return "integer";
         case T_IDENT: return "identifier";
@@ -189,9 +193,13 @@ token_T* next_token(lexer_T* lexer)
             case ')': return lexer_create_current_token(lexer, T_RPARAN);
             case ';': return lexer_create_current_token(lexer, T_SEMI);
             case ':': return lexer_create_current_token(lexer, T_COLON);
+            case ',': return lexer_create_current_token(lexer, T_COMMA);
             case '=': return lexer_create_current_token(lexer, T_ASSIGN);
             case '+': return lexer_create_current_token(lexer, T_PLUS);
             case '-': return lexer_create_current_token(lexer, T_MINUS);
+            case '*': return lexer_create_current_token(lexer, T_STAR);
+            case '/': return lexer_create_current_token(lexer, T_FSLASH);
+            case '%': return lexer_create_current_token(lexer, T_MODULO);
         }
     }
 
