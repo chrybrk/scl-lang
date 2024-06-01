@@ -1,0 +1,6 @@
+extern void print;
+
+let x: string = "Hello, World!";
+print(x);
+
+exit(0);

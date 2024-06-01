@@ -103,6 +103,62 @@ char* get_register(char size, int reg_type)
     return NULL;
 }
 
+char* get_register_noINC(char size, int reg_type)
+{
+    switch (reg_type)
+    {
+        case RT_arg:
+        {
+            if (arg_counter - 1 < 6)
+            {
+                switch (size)
+                {
+                    case 8: return r_arg[6 * 0 + (arg_counter - 1)];
+                    case 4: return r_arg[6 * 1 + (arg_counter - 1)];
+                    case 2:
+                    case 1: return r_arg[6 * 2 + (arg_counter - 1)];
+                };
+            }
+
+            break;
+        }
+
+        case RT_gen:
+        {
+            if (gen_counter - 1 < 4)
+            {
+                switch (size)
+                {
+                    case 8: return r_gen[4 * 0 + (gen_counter - 1)];
+                    case 4: return r_gen[4 * 1 + (gen_counter - 1)];
+                    case 2:
+                    case 1: return r_gen[4 * 2 + (gen_counter - 1)];
+                };
+            }
+
+            break;
+        }
+
+        case RT_reg:
+        {
+            if (reg_counter - 1 < 8)
+            {
+                switch (size)
+                {
+                    case 8: return r_reg[8 * 0 + (reg_counter - 1)];
+                    case 4: return r_reg[8 * 1 + (reg_counter - 1)];
+                    case 2: return r_reg[8 * 2 + (reg_counter - 1)];
+                    case 1: return r_reg[8 * 3 + (reg_counter - 1)];
+                };
+            }
+
+            break;
+        }
+    }
+
+    return NULL;
+}
+
 char get_data_type_size(int kind)
 {
     switch (kind)
@@ -192,7 +248,7 @@ void gen_exit(gen_T* gen, ast_T* node)
 {
     struct function_writeable* fnc = gen->functions->buffer[gen->functions->index - 1];
     gen_statement(gen, node->node);
-    fnc->content = alloc_str("\tmov rdi, rax\n", fnc->content);
+    fnc->content = alloc_str("\tpop rdi\n", fnc->content);
     fnc->content = alloc_str("\tmov rax, 60\n", fnc->content);
     fnc->content = alloc_str("\tsyscall\n", fnc->content);
 
@@ -217,7 +273,7 @@ void gen_expr(gen_T* gen, ast_T* node)
         }
         case T_STRING:
         {
-            fnc->content = alloc_str(writef("\tmov rax, string_%d\n\tpush rax\n", gen->strings->index), fnc->content);
+            fnc->content = alloc_str(writef("\tlea rax, [string_%d]\n\tpush rax\n", gen->strings->index), fnc->content);
             array_push(gen->strings, node->token->value);
             break;
         }
@@ -291,10 +347,11 @@ void gen_variable_identifier(gen_T* gen, ast_T* node)
 
     char* r = get_register(l_variable_size, RT_reg);
     char* gr = get_register(l_variable_size, RT_gen);
+    char* grnoINC = get_register_noINC(8, RT_gen);
 
     gen_statement(gen, next_node);
 
-    fnc->content = alloc_str(writef("\tpop %s\n\tmov %s, %s\n", gr, r, gr), fnc->content);
+    fnc->content = alloc_str(writef("\tpop %s\n\tmov %s, %s\n", grnoINC, r, gr), fnc->content);
     fnc->content = alloc_str(writef("\tmov %s [rbp - %ld], %s\n",
                 l_variable_dt_value,
                 fnc->last_stack_index,
@@ -323,10 +380,11 @@ void gen_variable_selection(gen_T* gen, ast_T* node)
                 gen_statement(gen, node->node);
 
                 char* gr = get_register(l_variable_size, RT_gen);
+                char* grnoINC = get_register_noINC(8, RT_gen);
 
                 fnc->content = alloc_str(
                         writef("\tpop %s\n\tmov %s [rbp - %ld], %s\n",
-                            gr,
+                            grnoINC,
                             l_variable_dt_value,
                             fnc->last_stack_index,
                             gr),
@@ -335,16 +393,36 @@ void gen_variable_selection(gen_T* gen, ast_T* node)
                 free_register();
                 break;
             }
+            case T_STRING:
+            {
+                gen_statement(gen, node->node);
+
+                char* gr = get_register(l_variable_size, RT_gen);
+                char* grnoINC = get_register_noINC(8, RT_gen);
+
+                fnc->content = alloc_str(
+                        writef("\tpop %s\n\tmov %s [rbp - %ld], %s\n",
+                            grnoINC,
+                            l_variable_dt_value,
+                            fnc->last_stack_index,
+                            gr),
+                        fnc->content);
+
+                free_register();
+
+                break;
+            }
         }
     else
     {
         gen_statement(gen, node->node);
 
         char* gr = get_register(l_variable_size, RT_gen);
+        char* grnoINC = get_register_noINC(8, RT_gen);
 
         fnc->content = alloc_str(
                 writef("\tpop %s\n\tmov %s [rbp - %ld], %s\n",
-                    gr,
+                    grnoINC,
                     l_variable_dt_value,
                     fnc->last_stack_index,
                     gr),

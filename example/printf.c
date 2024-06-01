@@ -1,6 +1,6 @@
 extern int printf(char* fmt, ...);
 
-void print(int value)
+void print(char* value)
 {
-    printf("%d", 100);
+    printf("%s\n", value);
 }

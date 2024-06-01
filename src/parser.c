@@ -173,6 +173,7 @@ ast_T* parser_parse_factor(parser_T* parser)
         case T_STRING:
         {
             ast_T* ast = init_ast_with_token(AST_EXPR, parser_token_consume(parser, T_STRING));
+            printf("%s - %s\n", print_token(ast->token->token_type), ast->token->value);
             return ast;
         }
         default:
