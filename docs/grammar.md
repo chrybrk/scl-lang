@@ -1,26 +1,9 @@
-program:
-    exit
-    let
-    extern
+EXPR:
+    number
 
-extern:
-    extern type ident;
+TERM:
+    EXPR "+" TERM | EXPR
+    EXPR "-" TERM | EXPR
 
-exit:
-    exit([expr]);
 
-let:
-    let ident: [type] = [expr];
-
-type:
-    i16
-    i32
-    i64
-    char
-    string
-
-expr:
-    intlit
-    ident
-    string
-    function call
+2 + 4 - 3

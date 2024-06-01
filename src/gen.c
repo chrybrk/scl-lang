@@ -410,26 +410,33 @@ void gen_binop(gen_T* gen, ast_T* node)
 {
     struct function_writeable* fnc = gen->functions->buffer[gen->functions->index - 1];
 
-    gen_statement(gen, node->right_node);
-    fnc->content = alloc_str(
-            "\tpush rax\n",
-            fnc->content
-        );
-    gen_statement(gen, node->left_node);
+    ast_T* ln = node->left_node;
+    ast_T* rn = node->right_node;
+
+    gen_statement(gen, ln);
+    fnc->content = alloc_str("\tpush rax\n", fnc->content);
+
+    gen_statement(gen, rn);
+    if (rn->ast_type == AST_EXPR)
+        fnc->content = alloc_str("\tpush rax\n", fnc->content);
 
     switch (node->op)
     {
         case T_PLUS:
-        {
-            fnc->content = alloc_str("\tpop rdx\n\tadd rax, rdx\n", fnc->content);
+            fnc->content = alloc_str("\tpop rdx\n", fnc->content);
+            fnc->content = alloc_str("\tpop rax\n", fnc->content);
+            fnc->content = alloc_str("\tadd rax, rdx\n", fnc->content);
+            fnc->content = alloc_str("\tpush rax\n", fnc->content);
             break;
-        }
+
         case T_MINUS:
-        {
-            fnc->content = alloc_str("\tpop rdx\n\tsub rax, rdx\n", fnc->content);
+            fnc->content = alloc_str("\tpop rdx\n", fnc->content);
+            fnc->content = alloc_str("\tpop rax\n", fnc->content);
+            fnc->content = alloc_str("\tsub rax, rdx\n", fnc->content);
+            fnc->content = alloc_str("\tpush rax\n", fnc->content);
             break;
-        }
     }
+
 }
 
 void gen_statement(gen_T* gen, ast_T* next_node)

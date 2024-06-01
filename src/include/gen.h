@@ -26,6 +26,8 @@ struct function_writeable
 typedef struct GEN_STRUCT
 {
     FILE* output;
+    int push_index;
+    int pushed_max_index;
     hashmap_T* hashmap;
     hashmap_T* extern_hashmap;
     array_T* vars;

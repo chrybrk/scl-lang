@@ -1,5 +1,6 @@
 extern i64 atoi;
+extern void print_int;
 
-let x: i64 = 4 - 2 + 2;
+print_int(2 - 4 + 3 + 100 - 20);
 
-exit(x);
+exit(0);

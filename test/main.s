@@ -1,45 +1,44 @@
-	.file	"main.c"
-	.text
-	.globl	r
-	.type	r, @function
-r:
-.LFB0:
-	.cfi_startproc
-	pushq	%rbp
-	.cfi_def_cfa_offset 16
-	.cfi_offset 6, -16
-	movq	%rsp, %rbp
-	.cfi_def_cfa_register 6
-	movl	$2, %eax
-	popq	%rbp
-	.cfi_def_cfa 7, 8
-	ret
-	.cfi_endproc
-.LFE0:
-	.size	r, .-r
-	.globl	main
-	.type	main, @function
-main:
-.LFB1:
-	.cfi_startproc
-	pushq	%rbp
-	.cfi_def_cfa_offset 16
-	.cfi_offset 6, -16
-	movq	%rsp, %rbp
-	.cfi_def_cfa_register 6
-	movl	$0, %eax
-	call	r
-	movl	%eax, %edx
-	movl	%edx, %eax
-	sall	$3, %eax
-	addl	%edx, %eax
-	addl	%eax, %eax
-	addl	$2, %eax
-	popq	%rbp
-	.cfi_def_cfa 7, 8
-	ret
-	.cfi_endproc
-.LFE1:
-	.size	main, .-main
-	.ident	"GCC: (GNU) 13.2.1 20230801"
-	.section	.note.GNU-stack,"",@progbits
+format ELF64
+section '.text' executable
+public _start
+
+_start:
+	push rbp
+	mov rbp, rsp
+
+    ; 4 - 2 + 3 + 4
+    mov rax, 4
+    push rax
+
+    mov rax, 2
+    push rax
+
+    mov rax, 3
+    push rax
+
+    mov rax, 4
+    push rax
+
+    mov rdx, [rsp + 8 * 3]
+    mov rax, [rsp + 8 * 2]
+    sub rdx, rax
+    mov [rsp + 8 * 2], rdx
+
+    mov rdx, [rsp + 8 * 2]
+    mov rax, [rsp + 8 * 1]
+    add rdx, rax
+    mov [rsp + 8 * 1], rdx
+
+    mov rdx, [rsp + 8 * 1]
+    mov rax, [rsp + 8 * 0]
+    add rdx, rax
+
+    push rdx
+
+	mov rax, 60
+    mov rdi, [rsp + 8 * 0]
+	syscall
+
+	pop rbp
+
+section '.data' writeable

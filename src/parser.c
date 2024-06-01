@@ -64,6 +64,19 @@ ast_T* init_ast_with_two_nodes(ast_T* left_node, ast_T* node, int type)
     return ast;
 }
 
+ast_T* init_binOP(ast_T* left, ast_T* right, int op)
+{
+    ast_T* ast = calloc(1, sizeof(struct AST_STRUCT));
+    ast->ast_type = AST_BINOP;
+    ast->left_node = left;
+    ast->right_node = right;
+    ast->op = op;
+    ast->node = NULL;
+    ast->lst = NULL;
+    ast->token = NULL;
+    return ast;
+}
+
 parser_T* init_parser(lexer_T* lexer)
 {
     parser_T* parser = calloc(1, sizeof(struct PARSER_STRUCT));
@@ -157,25 +170,16 @@ ast_T* parser_parse_factor(parser_T* parser)
 ast_T* parser_parse_term(parser_T* parser)
 {
     ast_T* left = parser_parse_factor(parser);
-
-    while (
-            parser->current_token->token_type == T_PLUS ||
-            parser->current_token->token_type == T_MINUS
-        )
-    {
-        ast_T* bin_expr = init_ast(AST_BINOP);
-        bin_expr->op = parser_token_consume(parser, parser->current_token->token_type)->token_type;
-        bin_expr->left_node = left;
-        bin_expr->right_node = parser_parse_expr(parser);
-        return bin_expr;
-    }
-
     return left;
 }
 
 ast_T* parser_parse_expr(parser_T* parser)
 {
     ast_T* left = parser_parse_term(parser);
+
+    while (parser->current_token->token_type == T_PLUS || parser->current_token->token_type == T_MINUS)
+        left = init_binOP(left, parser_parse_term(parser), parser_token_consume(parser, parser->current_token->token_type)->token_type);
+
     return left;
 }
 
