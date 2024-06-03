@@ -1,0 +1,15 @@
+extern void print;
+extern void printI;
+
+let x: i32 = 10;
+
+if (x > 5)
+{
+    print("what a mess.");
+}
+else
+{
+    print("is it?");
+}
+
+exit(0);

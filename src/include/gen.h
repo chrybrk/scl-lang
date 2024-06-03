@@ -11,6 +11,7 @@ struct stack_variable
     char data_type;
     ssize_t index;
     token_T* token;
+    int scope;
 };
 
 struct function_writeable
@@ -28,6 +29,7 @@ typedef struct GEN_STRUCT
     FILE* output;
     int push_index;
     int pushed_max_index;
+    int current_label;
     hashmap_T* hashmap;
     hashmap_T* extern_hashmap;
     array_T* vars;

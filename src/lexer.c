@@ -22,8 +22,12 @@ char* print_token(int token_type)
         case T_EXIT: return "exit";
         case T_LET: return "let";
         case T_EXTERN: return "extern";
+        case T_IF: return "if";
+        case T_ELSE: return "else";
         case T_LPARAN: return "(";
         case T_RPARAN: return ")";
+        case T_LBRACE: return "{";
+        case T_RBRACE: return "}";
         case T_SEMI: return ";";
         case T_COLON: return ":";
         case T_COMMA: return ",";
@@ -59,6 +63,8 @@ lexer_T* init_lexer(char* source_file, char* pathname)
     hashmap_insert(lexer->hashmap, "exit", T_EXIT);
     hashmap_insert(lexer->hashmap, "let", T_LET);
     hashmap_insert(lexer->hashmap, "extern", T_EXTERN);
+    hashmap_insert(lexer->hashmap, "if", T_IF);
+    hashmap_insert(lexer->hashmap, "else", T_ELSE);
 
     return lexer;
 }
@@ -191,6 +197,8 @@ token_T* next_token(lexer_T* lexer)
             case '"': return lexer_create_string_token(lexer);
             case '(': return lexer_create_current_token(lexer, T_LPARAN);
             case ')': return lexer_create_current_token(lexer, T_RPARAN);
+            case '{': return lexer_create_current_token(lexer, T_LBRACE);
+            case '}': return lexer_create_current_token(lexer, T_RBRACE);
             case ';': return lexer_create_current_token(lexer, T_SEMI);
             case ':': return lexer_create_current_token(lexer, T_COLON);
             case ',': return lexer_create_current_token(lexer, T_COMMA);

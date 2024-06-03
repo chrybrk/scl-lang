@@ -82,6 +82,7 @@ parser_T* init_parser(lexer_T* lexer)
     parser_T* parser = calloc(1, sizeof(struct PARSER_STRUCT));
     parser->lexer = lexer;
     parser->current_token = next_token(parser->lexer);
+    parser->current_label = 0;
     parser->hashmap = init_hashmap(DEF_SIZE);
 
     hashmap_insert(parser->hashmap, "void", VOID);
@@ -173,7 +174,6 @@ ast_T* parser_parse_factor(parser_T* parser)
         case T_STRING:
         {
             ast_T* ast = init_ast_with_token(AST_EXPR, parser_token_consume(parser, T_STRING));
-            printf("%s - %s\n", print_token(ast->token->token_type), ast->token->value);
             return ast;
         }
         default:
@@ -261,21 +261,60 @@ ast_T* parser_parse_extern(parser_T* parser)
     return ast;
 }
 
+ast_T* parser_parse_statement(parser_T* parser)
+{
+    ast_T* ast = NULL;
+
+    switch (parser->current_token->token_type)
+    {
+        case T_EXIT: ast = parser_parse_exit(parser); break; 
+        case T_LET: ast = parser_parse_let(parser); break; 
+        case T_EXTERN: ast = parser_parse_extern(parser); break;
+        default: ast = parser_parse_expr(parser);
+    }
+
+    parser_token_consume(parser, T_SEMI);
+    return ast;
+}
+
+ast_T* parser_parse_compound(parser_T* parser)
+{
+    switch (parser->current_token->token_type)
+    {
+        case T_LBRACE:
+        {
+            parser_token_consume(parser, T_LBRACE);
+
+            ast_T* stmnt = init_ast_list(AST_STATEMENT);
+            stmnt->op = parser->current_label; parser->current_label++;
+
+            while (parser->current_token->token_type != T_EOF && parser->current_token->token_type != T_RBRACE)
+            {
+                ast_T* ast = parser_parse_compound(parser);
+
+                array_push(stmnt->lst, ast);
+            }
+
+            parser_token_consume(parser, T_RBRACE);
+
+            return stmnt;
+        }
+        default:
+        {
+            ast_T* ast = parser_parse_statement(parser);
+
+            return ast;
+        }
+    }
+}
+
 ast_T* parser_parse(parser_T* parser)
 {
     ast_T* stmnt = init_ast_list(AST_STATEMENT);
-    while (parser->current_token->token_type != T_EOF)
-    {
-        switch (parser->current_token->token_type)
-        {
-            case T_EXIT: array_push(stmnt->lst, parser_parse_exit(parser)); break;
-            case T_LET: array_push(stmnt->lst, parser_parse_let(parser)); break;
-            case T_EXTERN: array_push(stmnt->lst, parser_parse_extern(parser)); break;
-            default: array_push(stmnt->lst, parser_parse_expr(parser));
-        }
+    stmnt->op = parser->current_label; parser->current_label++;
 
-        parser_token_consume(parser, T_SEMI);
-    }
+    while (parser->current_token->token_type != T_EOF)
+        array_push(stmnt->lst, parser_parse_compound(parser));
 
     return stmnt;
 }

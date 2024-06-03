@@ -238,10 +238,13 @@ void gen_program(gen_T* gen, ast_T* root)
 
     array_push(gen->functions, _start);
 
-    if (root->ast_type == AST_STATEMENT)
-        for (ssize_t i = 0; i < root->lst->index; i++) gen_statement(gen, (ast_T*)root->lst->buffer[i]);
-
+    gen_statement(gen, root);
     gen_postamble(gen);
+}
+
+struct stack_variable* gen_find_variable_in_scope(const char* variable_name)
+{
+    return NULL;
 }
 
 void gen_exit(gen_T* gen, ast_T* node)
@@ -251,7 +254,6 @@ void gen_exit(gen_T* gen, ast_T* node)
     fnc->content = alloc_str("\tpop rdi\n", fnc->content);
     fnc->content = alloc_str("\tmov rax, 60\n", fnc->content);
     fnc->content = alloc_str("\tsyscall\n", fnc->content);
-
 }
 
 void gen_expr(gen_T* gen, ast_T* node)
@@ -262,7 +264,7 @@ void gen_expr(gen_T* gen, ast_T* node)
         case T_INTLIT: fnc->content = alloc_str(writef("\tpush %d\n", node->token->intvalue), fnc->content); break;
         case T_IDENT:
         {
-            struct hash_pair* value = hashmap_find(gen->hashmap, node->token->value);
+            struct hash_pair* value = hashmap_find(gen->hashmap, writef("%s%d", node->token->value, gen->current_label));
             if (value)
             {
                 struct stack_variable* v = gen->vars->buffer[value->value];
@@ -296,7 +298,7 @@ void gen_variable_identifier(gen_T* gen, ast_T* node)
         case AST_EXPR:
         {
             // right variable information
-            struct hash_pair* r_variable_index = hashmap_find(gen->hashmap, next_node->token->value);
+            struct hash_pair* r_variable_index = hashmap_find(gen->hashmap, writef("%s%d", next_node->token->value, gen->current_label));
             struct stack_variable* r_variable = NULL;
 
             if (r_variable_index) r_variable = gen->vars->buffer[r_variable_index->value];
@@ -307,7 +309,8 @@ void gen_variable_identifier(gen_T* gen, ast_T* node)
                         E_FAILED,
                         writef("variable not defined, '%s'.\n",
                             next_node->token->value)
-                );
+                ), error_flush();
+
 
             char r_variable_size = get_data_type_size(r_variable->data_type);
 
@@ -325,7 +328,7 @@ void gen_variable_identifier(gen_T* gen, ast_T* node)
         }
         case AST_CALL:
         {
-            struct hash_pair* fnc_call = hashmap_find(gen->extern_hashmap, next_node->token->value);
+            struct hash_pair* fnc_call = hashmap_find(gen->extern_hashmap, writef("%s%d", node->token->value, gen->current_label));
             if (fnc_call)
             {
                 if (fnc_call->value == VOID) init_error_with_token(node->token, E_WARN, writef("function `%s` has return type of void.", next_node->token->value));
@@ -435,9 +438,9 @@ void gen_variable_selection(gen_T* gen, ast_T* node)
 void gen_let(gen_T* gen, ast_T* node)
 {
     struct function_writeable* fnc = gen->functions->buffer[gen->functions->index - 1];
-    struct hash_pair* value = hashmap_find(gen->hashmap, node->token->value);
+    struct hash_pair* value = hashmap_find(gen->hashmap, writef("%s%d", node->token->value, gen->current_label));
 
-    if (!value)
+    if (!value || (value && ((struct stack_variable*)gen->vars->buffer[value->value])->scope > gen->current_label))
     {
         gen_variable_selection(gen, node);
 
@@ -446,14 +449,15 @@ void gen_let(gen_T* gen, ast_T* node)
         var->identifier = node->token->value;
         var->index = fnc->last_stack_index;
         var->token = node->token;
+        var->scope = gen->current_label;
 
-        hashmap_insert(gen->hashmap, node->token->value, fnc->size_of_stack);
+        hashmap_insert(gen->hashmap, writef("%s%d", var->identifier, var->scope), fnc->size_of_stack);
         array_push(gen->vars, var);
         fnc->size_of_stack++;
     }
     else
     {
-        struct stack_variable* r_var = gen->vars->buffer[hashmap_find(gen->hashmap, node->token->value)->value];
+        struct stack_variable* r_var = gen->vars->buffer[hashmap_find(gen->hashmap, writef("%s%d", node->token->value, gen->current_label))->value];
         init_error_with_token(node->token, E_FAILED, writef("variable `%s` already defined.", node->token->value));
         init_error_with_token(r_var->token, E_FAILED, writef("variable `%s` defined here first.", node->token->value));
     }
@@ -461,7 +465,7 @@ void gen_let(gen_T* gen, ast_T* node)
 
 void gen_var(gen_T* gen, ast_T* node)
 {
-    struct hash_pair* value = hashmap_find(gen->hashmap, node->token->value);
+    struct hash_pair* value = hashmap_find(gen->hashmap, writef("%s%d", node->token->value, gen->current_label));
 
     if (value) gen_variable_selection(gen, node);
     else init_error_with_token(node->token, E_FAILED, writef("variable not defined, `%s`.\n", node->token->value));
@@ -557,5 +561,19 @@ void gen_statement(gen_T* gen, ast_T* next_node)
         case AST_VAR: gen_var(gen, next_node); break;
         case AST_CALL: gen_call(gen, next_node); break;
         case AST_BINOP: gen_binop(gen, next_node); break;
+        case AST_STATEMENT:
+        {
+            int l_label = gen->current_label;
+            gen->current_label = next_node->op;
+
+            for (ssize_t i = 0; i < next_node->lst->index; i++)
+            {
+                ast_T* ast = next_node->lst->buffer[i];
+                gen_statement(gen, ast);
+            }
+
+            gen->current_label = l_label;
+            break;
+        }
     }
 }

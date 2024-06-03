@@ -42,6 +42,7 @@ typedef struct PARSER_STRUCT
 {
     lexer_T* lexer;
     token_T* current_token;
+    int current_label;
     hashmap_T* hashmap;
 } parser_T;
 
@@ -54,6 +55,6 @@ ast_T* parser_parse_factor(parser_T* parser);
 ast_T* parser_parse_term(parser_T* parser);
 ast_T* parser_parse_expr(parser_T* parser);
 ast_T* parser_parse(parser_T* parser);
-ast_T* parser_parse(parser_T* parser);
+ast_T* parser_parse_global(parser_T* parser);
 
 #endif

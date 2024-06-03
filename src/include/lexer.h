@@ -10,10 +10,14 @@ enum {
     T_EXIT,
     T_LET,
     T_EXTERN,
+    T_IF,
+    T_ELSE,
 
     // operators, symbols
     T_LPARAN,
     T_RPARAN,
+    T_LBRACE,
+    T_RBRACE,
     T_SEMI,
     T_COLON,
     T_COMMA,
