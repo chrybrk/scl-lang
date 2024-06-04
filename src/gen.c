@@ -242,9 +242,18 @@ void gen_program(gen_T* gen, ast_T* root)
     gen_postamble(gen);
 }
 
-struct stack_variable* gen_find_variable_in_scope(const char* variable_name)
+struct stack_variable* gen_find_variable_in_scope(gen_T* gen, token_T* token)
 {
-    return NULL;
+    struct hash_pair* v_from_hashmap = NULL;
+    int i = gen->current_label;
+
+    while (!v_from_hashmap && i >= 0)
+    {
+        v_from_hashmap = hashmap_find(gen->hashmap, writef("%s%d", token->value, i));
+        i--;
+    }
+
+    return v_from_hashmap ? ((struct stack_variable*)gen->vars->buffer[v_from_hashmap->value]) : NULL;
 }
 
 void gen_exit(gen_T* gen, ast_T* node)
@@ -264,13 +273,12 @@ void gen_expr(gen_T* gen, ast_T* node)
         case T_INTLIT: fnc->content = alloc_str(writef("\tpush %d\n", node->token->intvalue), fnc->content); break;
         case T_IDENT:
         {
-            struct hash_pair* value = hashmap_find(gen->hashmap, writef("%s%d", node->token->value, gen->current_label));
-            if (value)
-            {
-                struct stack_variable* v = gen->vars->buffer[value->value];
+            struct stack_variable* v = gen_find_variable_in_scope(gen, node->token);
+            if (v)
                 fnc->content = alloc_str(writef("\tmov rax, [rbp - %ld]\n\tpush rax\n", v->index), fnc->content);
-            }
-            else init_error_with_token(node->token, E_FAILED, writef("variable `%s` is not defined.\n", node->token->value));
+            else
+                init_error_with_token(node->token, E_FAILED, writef("variable not defined, `%s`", node->token->value));
+
             break;
         }
         case T_STRING:
@@ -290,7 +298,8 @@ void gen_variable_identifier(gen_T* gen, ast_T* node)
     ast_T* next_node = node->node;
 
     // left variable
-    char l_variable_size = get_data_type_size(node->data_type);
+    struct stack_variable* l_var = gen_find_variable_in_scope(gen, node->token);
+    char l_variable_size = get_data_type_size(l_var ? l_var->data_type : node->data_type);
     char* l_variable_dt_value = get_data_type_value(l_variable_size);
 
     switch (next_node->ast_type)
@@ -298,19 +307,11 @@ void gen_variable_identifier(gen_T* gen, ast_T* node)
         case AST_EXPR:
         {
             // right variable information
-            struct hash_pair* r_variable_index = hashmap_find(gen->hashmap, writef("%s%d", next_node->token->value, gen->current_label));
-            struct stack_variable* r_variable = NULL;
+            struct stack_variable* r_variable = gen_find_variable_in_scope(gen, next_node->token);
 
-            if (r_variable_index) r_variable = gen->vars->buffer[r_variable_index->value];
-
-            if (!r_variable_index || !r_variable)
-                init_error_with_token(
-                        next_node->token,
-                        E_FAILED,
-                        writef("variable not defined, '%s'.\n",
-                            next_node->token->value)
-                ), error_flush();
-
+            if (!r_variable)
+                init_error_with_token(next_node->token, E_FAILED, writef("variable not defined, `%s`.", next_node->token->value)),
+                error_flush();
 
             char r_variable_size = get_data_type_size(r_variable->data_type);
 
@@ -357,7 +358,7 @@ void gen_variable_identifier(gen_T* gen, ast_T* node)
     fnc->content = alloc_str(writef("\tpop %s\n\tmov %s, %s\n", grnoINC, r, gr), fnc->content);
     fnc->content = alloc_str(writef("\tmov %s [rbp - %ld], %s\n",
                 l_variable_dt_value,
-                fnc->last_stack_index,
+                l_var ? l_var->index : fnc->last_stack_index,
                 r),
             fnc->content);
 
@@ -369,7 +370,9 @@ void gen_variable_selection(gen_T* gen, ast_T* node)
     struct function_writeable* fnc = gen->functions->buffer[gen->functions->index - 1];
     ast_T* next_node = node->node;
 
-    char l_variable_size = get_data_type_size(node->data_type);
+    struct stack_variable* l_var = gen_find_variable_in_scope(gen, node->token);
+
+    char l_variable_size = l_var ? get_data_type_size(l_var->data_type) : get_data_type_size(node->data_type);
     char* l_variable_dt_value = get_data_type_value(l_variable_size);
 
     fnc->last_stack_index += l_variable_size;
@@ -389,7 +392,7 @@ void gen_variable_selection(gen_T* gen, ast_T* node)
                         writef("\tpop %s\n\tmov %s [rbp - %ld], %s\n",
                             grnoINC,
                             l_variable_dt_value,
-                            fnc->last_stack_index,
+                            l_var ? l_var->index : fnc->last_stack_index,
                             gr),
                         fnc->content);
 
@@ -407,7 +410,7 @@ void gen_variable_selection(gen_T* gen, ast_T* node)
                         writef("\tpop %s\n\tmov %s [rbp - %ld], %s\n",
                             grnoINC,
                             l_variable_dt_value,
-                            fnc->last_stack_index,
+                            l_var ? l_var->index : fnc->last_stack_index,
                             gr),
                         fnc->content);
 
@@ -427,7 +430,7 @@ void gen_variable_selection(gen_T* gen, ast_T* node)
                 writef("\tpop %s\n\tmov %s [rbp - %ld], %s\n",
                     grnoINC,
                     l_variable_dt_value,
-                    fnc->last_stack_index,
+                    l_var ? l_var->index : fnc->last_stack_index,
                     gr),
                 fnc->content);
 
@@ -438,9 +441,9 @@ void gen_variable_selection(gen_T* gen, ast_T* node)
 void gen_let(gen_T* gen, ast_T* node)
 {
     struct function_writeable* fnc = gen->functions->buffer[gen->functions->index - 1];
-    struct hash_pair* value = hashmap_find(gen->hashmap, writef("%s%d", node->token->value, gen->current_label));
+    struct stack_variable* value = gen_find_variable_in_scope(gen, node->token);
 
-    if (!value || (value && ((struct stack_variable*)gen->vars->buffer[value->value])->scope > gen->current_label))
+    if (!value)
     {
         gen_variable_selection(gen, node);
 
@@ -450,6 +453,8 @@ void gen_let(gen_T* gen, ast_T* node)
         var->index = fnc->last_stack_index;
         var->token = node->token;
         var->scope = gen->current_label;
+
+        printf("%s - %d - %s%d\n", var->identifier, var->data_type, var->identifier, var->scope);
 
         hashmap_insert(gen->hashmap, writef("%s%d", var->identifier, var->scope), fnc->size_of_stack);
         array_push(gen->vars, var);
@@ -465,7 +470,7 @@ void gen_let(gen_T* gen, ast_T* node)
 
 void gen_var(gen_T* gen, ast_T* node)
 {
-    struct hash_pair* value = hashmap_find(gen->hashmap, writef("%s%d", node->token->value, gen->current_label));
+    struct stack_variable* value = gen_find_variable_in_scope(gen, node->token);
 
     if (value) gen_variable_selection(gen, node);
     else init_error_with_token(node->token, E_FAILED, writef("variable not defined, `%s`.\n", node->token->value));
