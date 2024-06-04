@@ -51,7 +51,3 @@
     - *
     - dynamic
     - arena
-
-~ Math Expr
-    -> 2 + 30 * 20;
-    -> [add(int:2, expr: mul(int: 30, expr: intlit(int: 20)))]

@@ -275,7 +275,15 @@ void gen_expr(gen_T* gen, ast_T* node)
         {
             struct stack_variable* v = gen_find_variable_in_scope(gen, node->token);
             if (v)
-                fnc->content = alloc_str(writef("\tmov rax, [rbp - %ld]\n\tpush rax\n", v->index), fnc->content);
+            {
+                char variable_size = get_data_type_size(v->data_type);
+                char* variable_value = get_data_type_value(variable_size);
+
+                char* gr = get_register(variable_size, RT_gen);
+                fnc->content = alloc_str(writef("\tmov %s, %s [rbp - %ld]\n\tcdq\n\tpush rax\n", gr, variable_value, v->index), fnc->content);
+
+                free_register();
+            }
             else
                 init_error_with_token(node->token, E_FAILED, writef("variable not defined, `%s`", node->token->value));
 
@@ -349,11 +357,11 @@ void gen_variable_identifier(gen_T* gen, ast_T* node)
         }
     }
 
+    gen_statement(gen, next_node);
+
     char* r = get_register(l_variable_size, RT_reg);
     char* gr = get_register(l_variable_size, RT_gen);
     char* grnoINC = get_register_noINC(8, RT_gen);
-
-    gen_statement(gen, next_node);
 
     fnc->content = alloc_str(writef("\tpop %s\n\tmov %s, %s\n", grnoINC, r, gr), fnc->content);
     fnc->content = alloc_str(writef("\tmov %s [rbp - %ld], %s\n",
@@ -454,8 +462,6 @@ void gen_let(gen_T* gen, ast_T* node)
         var->token = node->token;
         var->scope = gen->current_label;
 
-        printf("%s - %d - %s%d\n", var->identifier, var->data_type, var->identifier, var->scope);
-
         hashmap_insert(gen->hashmap, writef("%s%d", var->identifier, var->scope), fnc->size_of_stack);
         array_push(gen->vars, var);
         fnc->size_of_stack++;
@@ -550,6 +556,72 @@ void gen_binop(gen_T* gen, ast_T* node)
             fnc->content = alloc_str("\tdiv rcx\n", fnc->content);
             fnc->content = alloc_str("\tmov rax, rdx\n", fnc->content);
             fnc->content = alloc_str("\tpush rax\n", fnc->content);
+            break;
+
+        case T_GT:
+            fnc->content = alloc_str("\n\t; GT condition\n", fnc->content);
+            fnc->content = alloc_str("\tpop rax\n", fnc->content);
+            fnc->content = alloc_str("\tpop rdx\n", fnc->content);
+            fnc->content = alloc_str("\tcmp rax, rdx\n", fnc->content);
+            fnc->content = alloc_str("\tsetl al\n", fnc->content);
+            fnc->content = alloc_str("\tmovzx eax, al\n", fnc->content);
+            fnc->content = alloc_str("\tpush rax\n", fnc->content);
+            fnc->content = alloc_str("\t; GT condition - ends\n\n", fnc->content);
+            break;
+
+        case T_LT:
+            fnc->content = alloc_str("\n\t; LT condition\n", fnc->content);
+            fnc->content = alloc_str("\tpop rax\n", fnc->content);
+            fnc->content = alloc_str("\tpop rdx\n", fnc->content);
+            fnc->content = alloc_str("\tcmp rax, rdx\n", fnc->content);
+            fnc->content = alloc_str("\tsetg al\n", fnc->content);
+            fnc->content = alloc_str("\tmovzx eax, al\n", fnc->content);
+            fnc->content = alloc_str("\tpush rax\n", fnc->content);
+            fnc->content = alloc_str("\t; LT condition - ends\n\n", fnc->content);
+            break;
+
+        case T_GTE:
+            fnc->content = alloc_str("\n\t; GTE condition\n", fnc->content);
+            fnc->content = alloc_str("\tpop rax\n", fnc->content);
+            fnc->content = alloc_str("\tpop rdx\n", fnc->content);
+            fnc->content = alloc_str("\tcmp rax, rdx\n", fnc->content);
+            fnc->content = alloc_str("\tsetle al\n", fnc->content);
+            fnc->content = alloc_str("\tmovzx eax, al\n", fnc->content);
+            fnc->content = alloc_str("\tpush rax\n", fnc->content);
+            fnc->content = alloc_str("\t; GTE condition - ends\n\n", fnc->content);
+            break;
+
+        case T_LTE:
+            fnc->content = alloc_str("\n\t; LTE condition\n", fnc->content);
+            fnc->content = alloc_str("\tpop rax\n", fnc->content);
+            fnc->content = alloc_str("\tpop rdx\n", fnc->content);
+            fnc->content = alloc_str("\tcmp rax, rdx\n", fnc->content);
+            fnc->content = alloc_str("\tsetge al\n", fnc->content);
+            fnc->content = alloc_str("\tmovzx eax, al\n", fnc->content);
+            fnc->content = alloc_str("\tpush rax\n", fnc->content);
+            fnc->content = alloc_str("\t; LTE condition - ends\n\n", fnc->content);
+            break;
+
+        case T_EQ:
+            fnc->content = alloc_str("\n\t; EQ condition\n", fnc->content);
+            fnc->content = alloc_str("\tpop rax\n", fnc->content);
+            fnc->content = alloc_str("\tpop rdx\n", fnc->content);
+            fnc->content = alloc_str("\tcmp rax, rdx\n", fnc->content);
+            fnc->content = alloc_str("\tsete al\n", fnc->content);
+            fnc->content = alloc_str("\tmovzx eax, al\n", fnc->content);
+            fnc->content = alloc_str("\tpush rax\n", fnc->content);
+            fnc->content = alloc_str("\t; EQ condition - ends\n\n", fnc->content);
+            break;
+
+        case T_NEQ:
+            fnc->content = alloc_str("\n\t; NEQ condition\n", fnc->content);
+            fnc->content = alloc_str("\tpop rax\n", fnc->content);
+            fnc->content = alloc_str("\tpop rdx\n", fnc->content);
+            fnc->content = alloc_str("\tcmp rax, rdx\n", fnc->content);
+            fnc->content = alloc_str("\tsetne al\n", fnc->content);
+            fnc->content = alloc_str("\tmovzx eax, al\n", fnc->content);
+            fnc->content = alloc_str("\tpush rax\n", fnc->content);
+            fnc->content = alloc_str("\t; NEQ condition - ends\n\n", fnc->content);
             break;
     }
 

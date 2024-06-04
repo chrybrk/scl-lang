@@ -180,8 +180,8 @@ ast_T* parser_parse_factor(parser_T* parser)
         {
             init_error_with_lexer(parser->lexer,
                     E_FAILED,
-                    writef("illegal token, `%s`", print_token(parser->current_token->token_type))
-            );
+                    writef("illegal token, `%s`.", print_token(parser->current_token->token_type))
+            ), error_flush();
             parser_token_consume(parser, parser->current_token->token_type);
         }
     }
@@ -199,12 +199,32 @@ ast_T* parser_parse_term(parser_T* parser)
     return left;
 }
 
-ast_T* parser_parse_expr(parser_T* parser)
+ast_T* parser_parse_addititve(parser_T* parser)
 {
     ast_T* left = parser_parse_term(parser);
 
     while (parser->current_token->token_type == T_PLUS || parser->current_token->token_type == T_MINUS)
         left = init_binOP(left, parser_parse_term(parser), parser_token_consume(parser, parser->current_token->token_type)->token_type);
+
+    return left;
+}
+
+ast_T* parser_parse_expr(parser_T* parser)
+{
+    ast_T* left = parser_parse_addititve(parser);
+
+    while (
+        parser->current_token->token_type == T_GT   ||
+        parser->current_token->token_type == T_LT   ||
+        parser->current_token->token_type == T_GTE  ||
+        parser->current_token->token_type == T_LTE  ||
+        parser->current_token->token_type == T_EQ   ||
+        parser->current_token->token_type == T_AND  ||
+        parser->current_token->token_type == T_OR   ||
+        parser->current_token->token_type == T_NOT  ||
+        parser->current_token->token_type == T_NEQ
+    )
+        left = init_binOP(left, parser_parse_addititve(parser), parser_token_consume(parser, parser->current_token->token_type)->token_type);
 
     return left;
 }
@@ -261,6 +281,13 @@ ast_T* parser_parse_extern(parser_T* parser)
     return ast;
 }
 
+ast_T* parser_parse_if(parser_T* parser)
+{
+    parser_token_consume(parser, T_IF);
+
+    return NULL;
+}
+
 ast_T* parser_parse_statement(parser_T* parser)
 {
     ast_T* ast = NULL;
@@ -299,12 +326,9 @@ ast_T* parser_parse_compound(parser_T* parser)
 
             return stmnt;
         }
-        default:
-        {
-            ast_T* ast = parser_parse_statement(parser);
 
-            return ast;
-        }
+        case T_IF: return parser_parse_if(parser);
+        default: return parser_parse_statement(parser);
     }
 }
 

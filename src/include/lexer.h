@@ -27,12 +27,22 @@ enum {
     T_STAR,
     T_FSLASH,
     T_MODULO,
+    T_GT,
+    T_LT,
+    T_GTE,
+    T_LTE,
+    T_EQ,
+    T_NEQ,
+    T_AND,
+    T_OR,
+    T_NOT,
 
     // lit
     T_INTLIT,
     T_IDENT,
     T_STRING,
-    T_EOF
+    T_EOF,
+    T_ILLEGAL_TOKEN
 };
 
 typedef struct TOKEN_STRUCT

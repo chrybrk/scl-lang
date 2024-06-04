@@ -1,15 +1,14 @@
-extern void print;
-extern void printI;
+extern void puts;
 
 let x: i32 = 10;
 
 if (x > 5)
 {
-    print("what a mess.");
+    puts("what a mess.");
 }
 else
 {
-    print("is it?");
+    puts("is it?");
 }
 
 exit(0);

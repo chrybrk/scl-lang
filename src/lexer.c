@@ -36,11 +36,21 @@ char* print_token(int token_type)
         case T_STAR: return "*";
         case T_FSLASH: return "/";
         case T_MODULO: return "%";
+        case T_GT: return "<";
+        case T_LT: return ">";
+        case T_GTE: return "<=";
+        case T_LTE: return ">=";
+        case T_EQ: return "==";
+        case T_NEQ: return "!=";
+        case T_AND: return "&&";
+        case T_OR: return "||";
+        case T_NOT: return "!";
         case T_ASSIGN: return "=";
         case T_INTLIT: return "integer";
         case T_IDENT: return "identifier";
         case T_STRING: return "string";
         case T_EOF: return "eof";
+        case T_ILLEGAL_TOKEN: return "illegal token";
         default: init_error(E_FAILED, writef("[ERROR]: token: illegal token to print, `%d`\n", token_type));
     }
 
@@ -158,6 +168,28 @@ token_T* lexer_create_current_token(lexer_T* lexer, int token_type)
     return token;
 }
 
+token_T* lexer_create_current_token_twos(lexer_T* lexer, char n_char, int if_tt, int else_tt)
+{
+    if ((lexer->index + 1) < lexer->len)
+    {
+        if (lexer->source_file[lexer->index + 1] == n_char)
+        {
+            char string[3];
+            string[0] = lexer->current_char;
+            string[1] = lexer->source_file[lexer->index + 1];
+            string[2] = '\0';
+
+            token_T* token = init_token(if_tt, string, lexer->ln, lexer->clm);
+            lexer_advance(lexer);
+            lexer_advance(lexer);
+            
+            return token;
+        }
+    }
+
+    return lexer_create_current_token(lexer, else_tt);
+}
+
 // it will generate string token from current index to nth index.
 token_T* lexer_create_string_token(lexer_T* lexer)
 {
@@ -202,12 +234,20 @@ token_T* next_token(lexer_T* lexer)
             case ';': return lexer_create_current_token(lexer, T_SEMI);
             case ':': return lexer_create_current_token(lexer, T_COLON);
             case ',': return lexer_create_current_token(lexer, T_COMMA);
-            case '=': return lexer_create_current_token(lexer, T_ASSIGN);
             case '+': return lexer_create_current_token(lexer, T_PLUS);
             case '-': return lexer_create_current_token(lexer, T_MINUS);
             case '*': return lexer_create_current_token(lexer, T_STAR);
             case '/': return lexer_create_current_token(lexer, T_FSLASH);
             case '%': return lexer_create_current_token(lexer, T_MODULO);
+            case '=': return lexer_create_current_token_twos(lexer, '=', T_EQ, T_ASSIGN);
+            case '>': return lexer_create_current_token_twos(lexer, '=', T_GTE, T_GT);
+            case '<': return lexer_create_current_token_twos(lexer, '=', T_LTE, T_LT);
+            case '&': return lexer_create_current_token_twos(lexer, '&', T_AND, T_ILLEGAL_TOKEN);
+            case '|': return lexer_create_current_token_twos(lexer, '|', T_OR, T_ILLEGAL_TOKEN);
+            case '!': return lexer_create_current_token_twos(lexer, '=', T_NEQ, T_NOT);
+            default: init_error_with_token(lexer_create_current_token(lexer, T_ILLEGAL_TOKEN), E_FAILED,
+                             writef("illegal token, `%c`.", lexer->current_char)),
+                     error_flush();
         }
     }
 

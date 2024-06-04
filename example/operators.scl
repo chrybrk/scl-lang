@@ -1,0 +1,49 @@
+extern void printI;
+extern void print;
+extern void puts;
+
+let x: i32 = 10;
+let y: i32 = 12;
+
+print("x: "); printI(x);
+print("y: "); printI(y);
+
+print("x > y: "); printI(x > y);
+print("x < y: "); printI(x < y);
+print("x >= y: "); printI(x >= y);
+print("x <= y: "); printI(x <= y);
+print("x == y: "); printI(x == y);
+print("x != y: "); printI(x != y);
+
+puts("");
+puts("Lets swap x and y.");
+
+let z: i32 = x;
+x = y;
+y = z;
+
+print("x: "); printI(x);
+print("y: "); printI(y);
+
+print("x > y: "); printI(x > y);
+print("x < y: "); printI(x < y);
+print("x >= y: "); printI(x >= y);
+print("x <= y: "); printI(x <= y);
+print("x == y: "); printI(x == y);
+print("x != y: "); printI(x != y);
+
+puts("");
+puts("Lets try 3 variables.");
+
+let a: i32 = 10;
+let b: i32 = 20;
+let c: i32 = 30;
+let d: i32 = 0;
+
+print("a: "); printI(a);
+print("b: "); printI(b);
+print("c: "); printI(c);
+
+print("d = a > b"); print(d = a > b);
+
+exit(0);
